@@ -41,4 +41,6 @@ All new behavior needs affected [feature IDs](23-feature-regression-matrix.md). 
 
 `./scripts/check-ios.sh` builds the production entry, then runs the isolated family-release scenario and its restart companion in separate processes on disposable iPhone and iPad simulators. It requires an installed compatible runtime. It does not perform physical-device, CloudKit, complete VoiceOver, or every integration-test acceptance. No raw screenshots or archives are uploaded from CI.
 
+Pass `iPhone` or `iPad` to run only one device family; hosted CI uses both in parallel and requires their aggregate result. A slow cold run is not a failed test. Keep test assertions intact and distinguish an explicit cancellation from a code/runtime failure.
+
 Report baseline failures and final results separately. A delivery names the source SHA, checks run, simulator build, simulator runtime, physical devices, data compatibility, and remaining work. Keep public evidence sanitized and private raw evidence local. Do not call an older physical test a current pass.

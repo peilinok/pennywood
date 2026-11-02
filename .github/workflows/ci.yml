@@ -55,13 +55,18 @@ jobs:
       - name: Scan tracked work and complete history with default rules
         run: ./scripts/check-secrets.sh
 
-  ios:
-    name: iOS simulator
+  native:
+    name: iOS (${{ matrix.device }})
     runs-on: macos-15
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPhone, iPad]
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       PENNYWOOD_IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-18-5
+      PENNYWOOD_DEVICE_KIND: ${{ matrix.device }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -86,5 +91,17 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphonesimulator --show-sdk-version
           pod --version
-      - name: Build production and check isolated iPhone and iPad restart flows
-        run: ./scripts/check-ios.sh
+      - name: Build production and check the isolated family and restart flows
+        run: ./scripts/check-ios.sh "$PENNYWOOD_DEVICE_KIND"
+
+  ios:
+    name: iOS simulator
+    if: ${{ always() }}
+    needs: [native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both device families to pass
+        env:
+          DEVICE_RESULTS: ${{ needs.native.result }}
+        run: test "$DEVICE_RESULTS" = success

@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [[ $# -eq 0 ]]; then
+  PENNYWOOD_DEVICE_KINDS=(iPhone iPad)
+elif [[ $# -eq 1 && ( "$1" == iPhone || "$1" == iPad ) ]]; then
+  PENNYWOOD_DEVICE_KINDS=("$1")
+else
+  printf '%s\n' 'Usage: ./scripts/check-ios.sh [iPhone|iPad]' >&2
+  exit 64
+fi
 PENNYWOOD_FLUTTER="${PENNYWOOD_FLUTTER:-$(command -v flutter || true)}"
 if [[ -z "$PENNYWOOD_FLUTTER" ]]; then
   PENNYWOOD_FLUTTER="$HOME/development/flutter/bin/flutter"
@@ -33,7 +41,7 @@ PENNYWOOD_IOS_EVIDENCE="$(mktemp -d "$PWD/work/ios-check.XXXXXX")"
 
 # Choose only an available runtime/device type from the selected Xcode inventory.
 # Every tested simulator is created here; never reset an existing simulator or device.
-for PENNYWOOD_KIND in iPhone iPad; do
+for PENNYWOOD_KIND in "${PENNYWOOD_DEVICE_KINDS[@]}"; do
   export PENNYWOOD_EVIDENCE_DIR="$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND"
   PENNYWOOD_SIM_CONFIG="$(xcrun simctl list --json | python3 -c '
 import json, os, sys

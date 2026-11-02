@@ -12,6 +12,8 @@ The initial hosting configuration was read back on 2026-11-02; see the [sanitize
 
 CI runs on PRs and `main` pushes and checks the exact PR head or pushed commit. Strict up-to-date protection requires the PR to include current `main` before merge; conflicts block merging. Checking the real head also avoids treating GitHub's temporary synthetic merge identity as a published author. CI uses a read-only token, no family data, and no signing/cloud secrets. Actions are pinned to full commit hashes. No `pull_request_target`, self-hosted runner, production ledger, auto-publish, or automatic merge is used. Required jobs run even for documentation-only changes so protection cannot wait forever on a skipped job.
 
+iPhone and iPad native jobs run in parallel on separate disposable runners. The required `iOS simulator` job succeeds only if both finish successfully; a failed, skipped, or cancelled device job cannot satisfy the gate. Cold hosted native runs are substantially slower than local cached builds. Inspect completed logs before diagnosing a slow run as stalled; do not discard useful progress based only on local timing.
+
 ## Three independent versions
 
 | Version | Current baseline | Change rule |
