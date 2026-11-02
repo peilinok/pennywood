@@ -37,6 +37,10 @@ ROOT_FILES = {'.gitignore', '.metadata', 'AGENTS.md', 'README.md', 'CONTRIBUTING
 ROOT_DIRS = {'.github', 'lib', 'test', 'integration_test', 'test_driver', 'scripts', 'ios', 'assets', 'design-system', 'docs', 'prototype', 'reference', 'evidence'}
 
 
+def public_email(address):
+    return address.endswith('@users.noreply.github.com') or address == 'noreply@github.com'
+
+
 def git(*args):
     return subprocess.check_output(['git', *args], cwd=ROOT)
 
@@ -151,7 +155,7 @@ def main():
                     issue('exact-private-needle', name, text.count('\n', 0, text.index(needle)) + 1)
             if name != UPSTREAM_EMAIL_FILE:
                 for match in EMAIL.finditer(text):
-                    if not match.group().endswith('@users.noreply.github.com'):
+                    if not public_email(match.group()):
                         issue('non-noreply-email-needs-review', name, text.count('\n', 0, match.start()) + 1)
         for name, text in texts.items():
             for match in re.finditer(r'!?\[[^\]]*\]\(([^)]+)\)', text):
@@ -167,7 +171,7 @@ def main():
         for commit in git('rev-list', '--all').decode().splitlines():
             metadata = git('show', '-s', '--format=%ae%x00%ce%x00%an%x00%cn%x00%B', commit).decode()
             author, committer, author_name, committer_name, message = metadata.split('\0', 4)
-            if not all(address.endswith('@users.noreply.github.com') for address in [author, committer]):
+            if not all(public_email(address) for address in [author, committer]):
                 issue('commit-email-not-noreply', commit)
             if HAN.search(author_name + committer_name + message):
                 issue('commit-metadata-must-be-english', commit)
@@ -182,7 +186,7 @@ def main():
             if HAN.search(metadata):
                 issue('tag-metadata-must-be-english', ref)
             for match in EMAIL.finditer(metadata):
-                if not match.group().endswith('@users.noreply.github.com'):
+                if not public_email(match.group()):
                     issue('tag-email-not-noreply', ref)
             for rule, pattern in RULES.items():
                 if pattern.search(metadata):

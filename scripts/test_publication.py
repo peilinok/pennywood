@@ -94,6 +94,11 @@ class PublicationCheckTests(unittest.TestCase):
         self.assertTrue(any(p['rule'] == 'commit-email-not-noreply' for p in report['issues']))
         self.assertNotIn('private' + '@example.test', output)
 
+    def test_github_public_merge_identity_is_allowed(self):
+        self.git('-c', 'user.email=noreply@github.com', '-c', 'user.name=GitHub',
+                 'commit', '-m', 'Synthetic GitHub squash merge')
+        self.assertEqual(self.check('--history')[0], 0)
+
     def test_link_to_untracked_local_file_is_blocked(self):
         (self.root / 'README.md').write_text('[Local material](private.md)')
         (self.root / 'private.md').write_text('Local only')
