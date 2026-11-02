@@ -1,0 +1,54 @@
+{
+  "version": "0.4.0+11",
+  "database_schema": 6,
+  "date": "2026-11-02",
+  "source_commit": "1d84f9c091f18fee80c1e645fce560bfe39f0038",
+  "scope": "Family agreements, independent product rates, parent-session closure, real-money teaching investments, and interactive lessons",
+  "baseline": {
+    "common_checks": "passed",
+    "host_tests": 100,
+    "reference_accounting_cases": 26
+  },
+  "regressions": "Parent-session closure, shared agreements, invalid-rate submission, and unapproved investment entry failed before their fixes and passed afterward",
+  "final_host": {
+    "locked_dependencies": "unchanged",
+    "format": "passed",
+    "fatal_analysis": "passed",
+    "host_tests": 118,
+    "reference_accounting_cases": 26,
+    "tooling_and_module_boundaries": "passed",
+    "reference_prototype_rebuilds": "passed"
+  },
+  "local_ios_simulator": {
+    "xcode": "16.1",
+    "runtime": "iOS 18.1",
+    "production_entry_build": "passed",
+    "iphone_family_flow": "passed",
+    "iphone_independent_restart": "passed",
+    "ipad_family_flow": "passed",
+    "ipad_independent_restart": "passed",
+    "additional_coverage": "Schema5 upgrade and before-copy, shared terms, independent rates, nested parent-dialog closure, realized loss, interactive lessons, encrypted restore, and idempotency",
+    "visual_check": "iPhone curve and iPad compounding lesson inspected; raw screenshots remain local"
+  },
+  "data_and_privacy": {
+    "fixtures": "Synthetic ledgers and isolated credentials only",
+    "migration": "Schemas1-5 upgrade transactionally to schema6 with pre-upgrade copies; existing task and holding promises retained",
+    "encrypted_archives": "Read authenticated schema4/5/6; write schema6",
+    "rollback_limit": "Older binaries cannot open upgraded live data; retain pre-upgrade backups and prefer forward repair",
+    "staged_and_reachable_history_checks": "passed",
+    "gitleaks_version": "8.30.1",
+    "gitleaks_rules": "Default rules without baseline or custom allowances",
+    "gitleaks_findings": 0,
+    "commit_identity": "GitHub noreply"
+  },
+  "ci": "Results are recorded separately on the current pull request head",
+  "pending": [
+    "Physical-device backup and finance acceptance",
+    "Human VoiceOver and child learning evaluation",
+    "iPadOS 26 windowing",
+    "CloudKit, device authorization, and production synchronization",
+    "TestFlight or App Store distribution"
+  ],
+  "teaching_market_boundary": "Parent-enabled real pocket money, deterministic teaching prices, and signed realized returns; no real fund/Nasdaq prices or securities trading",
+  "publication_boundary": "No raw logs, screenshots, ledgers, backups, device identifiers, signing data, or private archives"
+}
