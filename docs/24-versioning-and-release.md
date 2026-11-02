@@ -22,7 +22,7 @@ iPhone and iPad native jobs run in parallel on separate disposable runners. The 
 | Drift schema | `5` | Increment only for persisted schema changes. Ship explicit migrations and compatibility tests; do not edit a released migration to mean something else. |
 | Encrypted archive | `Pennywood-encrypted-backup:1:schema5` | Treat encryption/envelope and payload-schema compatibility separately. Current reader accepts schema4 and schema5; changing one requires authenticated fixtures and restore tests. |
 
-Dependencies remain locked in `pubspec.lock` and `ios/Podfile.lock`. Baseline local toolchain is Flutter 3.35.7 / Dart 3.9.2, Xcode 16.1 / SDK 18.1, CocoaPods 1.16.2. Hosted CI uses macOS 15 with Xcode 16.4 / iOS 18.5 simulators and the same Flutter version. CI records installed tool versions; toolchain changes need their own validation and must not silently regenerate locks.
+Dependencies remain locked in `pubspec.lock` and `ios/Podfile.lock`. Baseline local toolchain is Flutter 3.35.7 / Dart 3.9.2, Xcode 16.1 / SDK 18.1, Ruby 4.0.5, CocoaPods 1.16.2, and JSON gem 2.18.0. Hosted CI uses macOS 15 with Xcode 16.4 / iOS 18.5 simulators and the same Flutter/Ruby/CocoaPods/JSON versions. CocoaPods hashes generated JSON spec files: different JSON formatters can change checksums with identical pod versions. Native preflight rejects lock changes after configuration and runs `pod install --deployment` before builds; the final lockfile diff check remains required. CI records installed tool versions; toolchain changes need their own validation and must not silently regenerate locks.
 
 ## Release sequence
 

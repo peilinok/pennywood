@@ -23,7 +23,7 @@ Real families start with zero balances, budgets, and rates, with no default pass
 
 ## Run locally
 
-Validated baseline: Flutter **3.35.7**, Dart **3.9.2**, Xcode **16.1 / SDK 18.1**, CocoaPods **1.16.2**. Only `ios/` is generated. Both dependency lockfiles are checked in. Drift code generation is not required.
+Validated baseline: Flutter **3.35.7**, Dart **3.9.2**, Xcode **16.1 / SDK 18.1**, Ruby **4.0.5**, CocoaPods **1.16.2**, JSON gem **2.18.0**. Use this JSON version with CocoaPods: older formatters change spec checksums even when pod versions match. Only `ios/` is generated. Both dependency lockfiles are checked in. Drift code generation is not required.
 
 ```sh
 git clone https://github.com/peilinok/pennywood.git

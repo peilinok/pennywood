@@ -37,6 +37,10 @@ trap finish EXIT
 mkdir -p work
 PENNYWOOD_IOS_EVIDENCE="$(mktemp -d "$PWD/work/ios-check.XXXXXX")"
 "$PENNYWOOD_FLUTTER" pub get --enforce-lockfile
+printf '%s\n' 'Checking locked CocoaPods metadata before native builds.'
+"$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --config-only --target lib/main.dart
+git diff --exit-code -- pubspec.lock ios/Podfile.lock
+pod install --deployment --project-directory=ios
 printf '%s\n' 'Building the production simulator entry.'
 "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --target lib/main.dart
 

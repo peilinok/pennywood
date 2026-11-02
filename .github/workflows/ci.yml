@@ -78,11 +78,21 @@ jobs:
           flutter-version: '3.35.7'
           channel: stable
           cache: true
-      - name: Pin CocoaPods to the lockfile toolchain
+      - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1
+        with:
+          ruby-version: '4.0.5'
+          bundler: none
+      - name: Pin CocoaPods and JSON to the lockfile toolchain
         run: |
+          gem install json --version 2.18.0 --no-document
           gem install cocoapods --version 1.16.2 --no-document
           mkdir -p "$RUNNER_TEMP/pennywood-bin"
-          printf '#!/usr/bin/env bash\nexec %q _1.16.2_ "$@"\n' "$(command -v pod)" > "$RUNNER_TEMP/pennywood-bin/pod"
+          cat > "$RUNNER_TEMP/pennywood-bin/pod" <<'RUBY'
+          #!/usr/bin/env ruby
+          gem 'json', '= 2.18.0'
+          gem 'cocoapods', '= 1.16.2'
+          load Gem.bin_path('cocoapods', 'pod', '1.16.2')
+          RUBY
           chmod +x "$RUNNER_TEMP/pennywood-bin/pod"
           echo "$RUNNER_TEMP/pennywood-bin" >> "$GITHUB_PATH"
       - name: Record toolchain
@@ -90,6 +100,8 @@ jobs:
           flutter --version
           xcodebuild -version
           xcrun --sdk iphonesimulator --show-sdk-version
+          ruby --version
+          ruby -e 'gem "json", "= 2.18.0"; require "json"; puts "JSON #{JSON::VERSION}"'
           pod --version
       - name: Build production and check the isolated family and restart flows
         run: ./scripts/check-ios.sh "$PENNYWOOD_DEVICE_KIND"
