@@ -1,0 +1,191 @@
+{
+  "description": "Reference layout: XY is already projected onto an 860 x 530 drawing plane, not tile indexes. Never store real amounts in scene components.",
+  "logicalSize": {
+    "width": 860,
+    "height": 530
+  },
+  "walkablePolygon": [
+    [
+      99,
+      301
+    ],
+    [
+      412,
+      177
+    ],
+    [
+      751,
+      322
+    ],
+    [
+      459,
+      470
+    ]
+  ],
+  "buildingObstacles": [
+    [
+      [
+        185,
+        328
+      ],
+      [
+        264,
+        371
+      ],
+      [
+        335,
+        333
+      ],
+      [
+        255,
+        289
+      ]
+    ],
+    [
+      [
+        450,
+        243
+      ],
+      [
+        534,
+        290
+      ],
+      [
+        619,
+        246
+      ],
+      [
+        533,
+        198
+      ]
+    ],
+    [
+      [
+        566,
+        355
+      ],
+      [
+        628,
+        392
+      ],
+      [
+        684,
+        363
+      ],
+      [
+        619,
+        326
+      ]
+    ]
+  ],
+  "treeTrunkObstacles": [
+    {
+      "x": 145,
+      "y": 333,
+      "radius": 11
+    },
+    {
+      "x": 393,
+      "y": 241,
+      "radius": 11
+    },
+    {
+      "x": 710,
+      "y": 334,
+      "radius": 11
+    }
+  ],
+  "referencePathGridStep": 10,
+  "referenceWalkingSpeed": 150,
+  "playerInitial": {
+    "x": 400,
+    "y": 380
+  },
+  "places": {
+    "savings": {
+      "name": "储蓄小屋",
+      "entrance": {
+        "x": 285,
+        "y": 372
+      },
+      "label": {
+        "x": 267,
+        "y": 173
+      },
+      "sourceTranslation": [
+        192,
+        184
+      ],
+      "sortDepth": 365,
+      "asset": "svg/house-savings.svg",
+      "view": "market"
+    },
+    "wish": {
+      "name": "愿望工坊",
+      "entrance": {
+        "x": 508,
+        "y": 304
+      },
+      "label": {
+        "x": 535,
+        "y": 93
+      },
+      "sourceTranslation": [
+        445,
+        99
+      ],
+      "sortDepth": 285,
+      "asset": "svg/house-wish.svg",
+      "view": "wish"
+    },
+    "tasks": {
+      "name": "委托小铺",
+      "entrance": {
+        "x": 589,
+        "y": 390
+      },
+      "label": {
+        "x": 612,
+        "y": 263
+      },
+      "sourceTranslation": [
+        572,
+        263
+      ],
+      "sortDepth": 386,
+      "asset": "svg/house-tasks.svg",
+      "view": "tasks"
+    },
+    "growth": {
+      "name": "时光树",
+      "entrance": {
+        "x": 466,
+        "y": 432
+      },
+      "label": {
+        "x": 491,
+        "y": 453
+      },
+      "view": "growth"
+    },
+    "journal": {
+      "name": "小镇信箱",
+      "entrance": {
+        "x": 361,
+        "y": 420
+      },
+      "view": "wallet"
+    }
+  },
+  "explorationPlaces": [
+    "savings",
+    "wish",
+    "tasks",
+    "growth"
+  ],
+  "growthVisualStages": {
+    "noSettledYield": 0.42,
+    "positiveSettledYieldBelow100Cents": 0.54,
+    "settledYieldAtLeast100Cents": 0.62
+  }
+}

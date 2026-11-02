@@ -1,0 +1,33 @@
+name: pennywood
+description: Pennywood connects real-world effort, family agreements, and pocket money.
+publish_to: none
+version: 0.3.6+10
+environment:
+  sdk: '>=3.9.2 <4.0.0'
+  flutter: '>=3.35.7'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flame: 1.32.0
+  drift: 2.28.2
+  sqlite3_flutter_libs: 0.5.39
+  path_provider: 2.1.5
+  flutter_svg: 2.2.0
+  flutter_secure_storage: 9.2.4
+  cryptography: 2.7.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_driver:
+    sdk: flutter
+  flutter_lints: 5.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/scene-layout.json
+    - assets/svg/
+    - assets/svg/quick-tasks/

@@ -1,0 +1,97 @@
+{
+  "version": "0.3.6+10",
+  "database_schema": 5,
+  "date": "2026-11-02",
+  "scope": "Local iPhone/iPad family app; two independent children on one device",
+  "prior_0_3_6_review_and_publication": {
+    "baseline": {
+      "locked_dependencies": "passed",
+      "format": "passed",
+      "analysis": "passed",
+      "host_tests": 98
+    },
+    "review": {
+      "standards": "One P2 fixed and independently re-reviewed",
+      "spec": "One P2 fixed",
+      "regressions": "Observed failures before repair; secret-form lifecycle test added and onboarding recovery assertion strengthened"
+    },
+    "final_host": {
+      "locked_dependencies": "passed",
+      "format": "passed",
+      "analysis": "passed",
+      "host_tests": 99
+    },
+    "isolated_export": {
+      "contains_local_signing_config": false,
+      "locked_dependencies": "passed",
+      "format": "passed",
+      "analysis": "passed",
+      "host_tests": 99,
+      "ios_simulator_debug_build": "passed using production lib/main.dart"
+    },
+    "simulator_runtime": {
+      "os": "iOS 18.1",
+      "device": "isolated iPhone simulator",
+      "install_and_launch": "passed",
+      "visual_check": "zero-family welcome screen rendered; screenshot stays local",
+      "limits": "Startup smoke only, not full business or physical-device regression"
+    },
+    "prototypes": {
+      "wish_journal_clean_build": "passed",
+      "interaction_lab_clean_build": "passed",
+      "reference_accounting_checks": "passed"
+    },
+    "publication_checker_tests": 7,
+    "privacy": {
+      "public_files": 193,
+      "staged_issues": 0,
+      "history_issues": 0,
+      "gitleaks_version": "8.30.1",
+      "gitleaks_findings": 0,
+      "rules": "Default rules, no baseline/custom allowances; official checksum-verified release"
+    }
+  },
+  "repository_language_migration": {
+    "language": "English documentation, comments, paths, test descriptions, development tooling, and Git metadata",
+    "preserved": "Chinese product UI/brand and Chinese business inputs",
+    "baseline_host_tests": 99,
+    "final_host_tests": 99,
+    "format": "passed",
+    "analysis": "passed",
+    "publication_checker_tests": 12,
+    "new_guard_regressions": "Five failures observed before implementation, all passed afterward",
+    "production_dart_change": "Comments only; executable content unchanged",
+    "assets_locks_and_legacy_ciphertext": "Byte-identical to the original public tree",
+    "golden_case_business_inputs_and_expected_results": "All 26 unchanged; descriptive metadata translated",
+    "documentation_files": 23,
+    "cjk_comment_or_docstring_candidates": 0,
+    "history_policy": "One English root commit; original history archived only in ignored local work, never a public backup ref",
+    "clean_export": {
+      "locked_dependencies": "passed",
+      "format": "passed",
+      "analysis": "passed",
+      "host_tests": 99,
+      "publication_checker_tests": 12,
+      "prototype_builds": 3,
+      "reference_accounting_checks": "passed",
+      "ios_simulator_debug_build": "passed without local signing configuration"
+    },
+    "integration_diagnostics": "English timeout/assertion messages and screenshot labels; Chinese UI selectors and business inputs preserved",
+    "publication_gate": "Scan the final root commit and complete reachable history with private needles and default gitleaks rules before a force-with-lease push; verify remote SHA and file objects afterward",
+    "physical_device_regression": "Not repeated for repository-language maintenance"
+  },
+  "historical_physical_device_boundary": {
+    "version": "0.3.5",
+    "iphone_and_ipad": "Four isolated-ledger core checks each; production entry restored afterward",
+    "physical_0_3_6": "Not repeated",
+    "real_cloudkit_round_trips_passed": 0
+  },
+  "remaining": [
+    "CloudKit, device authorization, and production sync",
+    "Offline/out-of-order delivery and multiple-parent conflicts",
+    "Complete 0.3.6 physical-device backup and finance regression",
+    "Human VoiceOver, iPadOS 26 windows, longitudinal child testing",
+    "TestFlight or App Store publication"
+  ],
+  "privacy_boundary": "Real ledgers, backups, raw logs, device screenshots/identifiers, signing config, old archives, private needles, and original Git-history backups remain local and excluded. Commits use GitHub noreply identities."
+}

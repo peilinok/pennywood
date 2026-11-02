@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>栗子小镇 · 心愿手账</title>
+<style>__STYLES__</style>
+</head>
+<body>
+<header class="lab-top"><div><b>栗子小镇 <span>· Pennywood</span></b><p>一份心愿，一点行动，一起慢慢实现。</p></div><span class="lab-label">可点击 UI / UX 设计 · 示例家庭</span></header>
+<main class="lab-layout">
+<section class="preview-area" aria-label="APP 设计预览">
+<div class="preview-controls">
+<div class="switch" aria-label="预览尺寸"><button data-device="tablet" id="tablet-mode">iPad</button><button data-device="phone" id="phone-mode">iPhone</button></div>
+<div class="switch" aria-label="预览身份"><button data-role="child" id="child-role">孩子端</button><button data-role="parent" id="parent-role">家长端</button></div>
+<div class="preview-options"><button class="tool-button" id="theme">深色</button><button class="tool-button" id="text-size" aria-pressed="false">大字</button><button class="tool-button" id="simulation-toggle" aria-expanded="false">互通演示</button><button class="tool-button" id="reset">重置</button></div>
+</div>
+<div class="phone-stage"><div class="device tablet" id="device"><div class="screen" id="screen"></div><div id="modal-root"></div><div id="toast-root" aria-live="polite" aria-atomic="true"></div></div></div>
+<p class="preview-footnote">设计原型 · 独立示例数据 · 刷新重置 · 未连接真实账本或 iCloud</p>
+</section>
+<aside class="lab-aside" id="simulation-panel" aria-label="研究者互通演示工具">
+<div class="eyebrow">体验这条完整路径</div><h2>小小的努力，<br>被认真看见。</h2><p>孩子完成现实任务后点图标提交。家长先检查，再确认实际兑现，孩子收到记录后才增加零钱。</p>
+<div class="simulation"><span class="step-label">当前选中的孩子</span><strong id="simulation-child"></strong><div id="queue-count" class="count"></div><p id="queue-note"></p><button data-act="deliver" id="deliver-button">① 模拟送达家长</button><button data-act="receive" id="receive-button">② 模拟孩子接收</button></div>
+<div class="sync-facts" id="sync-facts"></div><h3>操作记录</h3><ol class="event-list" id="event-list"></ol>
+<details class="lab-details"><summary>这份原型的边界</summary><p>同 Apple 账户的互通计划使用 CloudKit 私有库。两个按钮只模拟传输；身份切换也只是预览，不代表已实现家长锁。正式 APP 应自动尝试同步。</p></details>
+<button class="text-btn" id="present">只看 APP，进入试玩模式</button>
+</aside>
+</main>
+<script>const ASSETS=__ASSETS__;</script>
+<script>__SCRIPT__</script>
+</body>
+</html>
