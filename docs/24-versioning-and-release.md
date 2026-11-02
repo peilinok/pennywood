@@ -8,6 +8,8 @@ Protect `main` with a PR requirement, strict up-to-date checks named `Repository
 
 Protect existing `v*` tags against update and deletion with an active tag ruleset. A tag is a recovery marker, not proof of acceptance. Do not create a tag until its source has passed the stated checks. Repository files cannot enforce hosting settings by themselves: verify actual GitHub API settings and record them in sanitized evidence. If the account cannot enable a rule, report that limitation rather than claiming protection exists.
 
+The initial hosting configuration was read back on 2026-11-02; see the [sanitized settings snapshot](../evidence/public/governance-setup.json). It is a dated observation, not proof that future settings remain unchanged.
+
 CI runs on PRs and `main` pushes and checks the exact PR head or pushed commit. Strict up-to-date protection requires the PR to include current `main` before merge; conflicts block merging. Checking the real head also avoids treating GitHub's temporary synthetic merge identity as a published author. CI uses a read-only token, no family data, and no signing/cloud secrets. Actions are pinned to full commit hashes. No `pull_request_target`, self-hosted runner, production ledger, auto-publish, or automatic merge is used. Required jobs run even for documentation-only changes so protection cannot wait forever on a skipped job.
 
 ## Three independent versions

@@ -1,0 +1,51 @@
+{
+  "observed_on": "2026-11-02",
+  "repository": "peilinok/pennywood",
+  "main_protection": {
+    "pull_request_required": true,
+    "external_approvals_required": 0,
+    "strict_up_to_date_checks": true,
+    "required_checks": [
+      {
+        "context": "Repository checks",
+        "app_id": 15368
+      },
+      {
+        "context": "iOS simulator",
+        "app_id": 15368
+      }
+    ],
+    "administrators_enforced": true,
+    "linear_history": true,
+    "resolve_conversations": true,
+    "force_pushes_allowed": false,
+    "deletions_allowed": false
+  },
+  "version_tag_protection": {
+    "enforcement": "active",
+    "refs": [
+      "refs/tags/v*"
+    ],
+    "rules": [
+      "update",
+      "deletion"
+    ],
+    "bypass_actors": []
+  },
+  "merge_policy": {
+    "squash_only": true,
+    "delete_merged_branches": true,
+    "title": "PR_TITLE",
+    "body": "PR_BODY"
+  },
+  "baseline": {
+    "tag": "v0.3.6-local.1",
+    "source_commit": "0ac9298829c47e3df4160a41dae6a0cb3f9424ad"
+  },
+  "workflow": ".github/workflows/ci.yml",
+  "verification_scope": "GitHub settings read back through its API and baseline tag target verified remotely; CI results are reported separately for the exact PR candidate.",
+  "limitations": [
+    "Administrators can deliberately reconfigure GitHub rules; documentation alone cannot prevent an authorized settings change.",
+    "No automatic release distribution or production data recovery is configured."
+  ]
+}
