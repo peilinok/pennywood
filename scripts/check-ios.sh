@@ -60,8 +60,12 @@ print(runtime["identifier"])
   xcrun simctl boot "$PENNYWOOD_SIMULATOR"
   xcrun simctl bootstatus "$PENNYWOOD_SIMULATOR" -b
   for PENNYWOOD_TARGET in family_release_test family_release_restart_test; do
-    "$PENNYWOOD_FLUTTER" drive --no-pub --debug -d "$PENNYWOOD_SIMULATOR" \
+    # Flutter drive normally uninstalls on exit. Keep storage, then terminate explicitly
+    # so the companion is a new process reading the previous process's database.
+    "$PENNYWOOD_FLUTTER" drive --no-pub --debug --keep-app-running --no-uninstall-first -d "$PENNYWOOD_SIMULATOR" \
       --driver test_driver/integration_test.dart --target "integration_test/$PENNYWOOD_TARGET.dart"
+    PENNYWOOD_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/ios/iphonesimulator/Runner.app/Info.plist)"
+    xcrun simctl terminate "$PENNYWOOD_SIMULATOR" "$PENNYWOOD_BUNDLE_ID"
   done
   cleanup
   PENNYWOOD_SIMULATOR=''
