@@ -7,6 +7,7 @@ import 'package:pennywood/data/backup.dart';
 import 'package:pennywood/features/wish_home.dart';
 import 'package:pennywood/features/panels.dart';
 import 'family_release_support.dart';
+import 'experience_acceptance.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -223,5 +224,9 @@ void main() {
       await shot('05-backup-and-parent-lock');
       expect(tester.takeException(), isNull);
     },
+  );
+  testWidgets(
+    'Schema5 upgrade, shared terms, real-money market loss, lessons, and encrypted restore',
+    verifyExperience,
   );
 }

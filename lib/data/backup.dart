@@ -43,9 +43,12 @@ class FamilyBackup {
     'visits',
     'wish_withdrawals',
     'wish_loans',
+    'family_agreements',
+    'family_product_terms',
   ];
   static const _limit = 20 * 1024 * 1024;
-  static const _header = 'Pennywood-encrypted-backup:1:schema5';
+  static const _header = 'Pennywood-encrypted-backup:1:schema6';
+  static const _schema5Header = 'Pennywood-encrypted-backup:1:schema5';
   static const _legacyHeader = 'Pennywood-encrypted-backup:1:schema4';
   static final _kdf = Pbkdf2(
     macAlgorithm: Hmac.sha256(),
@@ -106,7 +109,12 @@ class FamilyBackup {
     try {
       final envelope = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
       final header = envelope['format'];
-      require(header == _header || header == _legacyHeader, '不支持此备份版本，原账本未改变');
+      require(
+        header == _header ||
+            header == _schema5Header ||
+            header == _legacyHeader,
+        '不支持此备份版本，原账本未改变',
+      );
       final salt = base64Decode(envelope['salt'] as String);
       final nonce = base64Decode(envelope['nonce'] as String);
       final mac = base64Decode(envelope['mac'] as String);
@@ -130,6 +138,8 @@ class FamilyBackup {
       final payload = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
       final tables = payload['tables'] as Map<String, dynamic>;
       final expectedTables = header == _legacyHeader
+          ? _tables.sublist(0, _tables.length - 4)
+          : header == _schema5Header
           ? _tables.sublist(0, _tables.length - 2)
           : _tables;
       require(
@@ -163,6 +173,51 @@ class FamilyBackup {
                 },
           ];
         }
+      }
+      if (header != _header) {
+        rows['children'] = [
+          for (final child in rows['children']!)
+            {
+              ...child,
+              'market_return': 0,
+              'market_spent': 0,
+              'market_enabled': 0,
+            },
+        ];
+        final family = rows['families']!.single;
+        final selected = rows['children']!.firstWhere(
+          (c) => c['id'] == family['active_child'],
+        );
+        rows['family_agreements'] = [
+          for (final q in rows['quick_tasks']!)
+            if (q['child_id'] == selected['id'])
+              {
+                for (final key in [
+                  'family_id',
+                  'id',
+                  'detail',
+                  'amount',
+                  'enabled',
+                ])
+                  key: q[key],
+              },
+        ];
+        final differing =
+            rows['children']!.map((c) => c['rate_bps']).toSet().length > 1;
+        final latest = rows['children']!
+            .map((c) => c['terms_version'] as int)
+            .reduce(max);
+        rows['family_product_terms'] = [
+          for (final product in ['sprout', 'annual', 'dividend'])
+            {
+              'family_id': family['id'],
+              'product': product,
+              'rate_bps': selected['rate_bps'],
+              'terms_version': differing
+                  ? latest + 1
+                  : selected['terms_version'],
+            },
+        ];
       }
       final result = VerifiedBackup._(
         Map.unmodifiable(rows),
@@ -229,6 +284,11 @@ class FamilyBackup {
           require(
             sum('income') == s.laborTotal &&
                 sum('yield') == s.bonusEarned &&
+                sum('market-return') == s.marketReturn &&
+                s.ledger
+                        .where((l) => l.kind == 'market-return' && l.amount > 0)
+                        .fold<int>(0, (v, l) => v + l.amount) ==
+                    s.marketSpent &&
                 sum('withdraw') == s.withdrawn &&
                 sum('repay') == s.repaidTotal,
             '备份流水与账户金额核对未通过',

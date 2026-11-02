@@ -1,13 +1,37 @@
 import 'money.dart';
 
 class Product {
-  const Product(this.id, this.name, this.days, this.minimum);
+  const Product(
+    this.id,
+    this.name,
+    this.days,
+    this.minimum, {
+    this.gainCapBps = 0,
+    this.lossCapBps = 0,
+  });
   final String id, name;
-  final int days, minimum;
+  final int days, minimum, gainCapBps, lossCapBps;
+  bool get market => gainCapBps > 0;
   static const all = {
     'sprout': Product('sprout', '小树定期', 90, 1000),
     'annual': Product('annual', '年轮定期', 365, 5000),
     'dividend': Product('dividend', '小镇分红计划', 30, 1000),
+    'lowVol': Product(
+      'lowVol',
+      '红利低波',
+      30,
+      1000,
+      gainCapBps: 500,
+      lossCapBps: 1000,
+    ),
+    'growth': Product(
+      'growth',
+      '成长高波',
+      30,
+      1000,
+      gainCapBps: 2000,
+      lossCapBps: 5000,
+    ),
   };
 }
 
@@ -195,6 +219,11 @@ class ChildAccount {
     this.repaidTotal = 0,
     this.budget = 0,
     this.rateBps = 0,
+    this.marketReturn = 0,
+    this.marketSpent = 0,
+    this.marketEnabled = false,
+    Map<String, int>? productRates,
+    Map<String, int>? productVersions,
     this.termsVersion = 1,
     this.sequence = 0,
     this.distribution = 'cash',
@@ -208,7 +237,9 @@ class ChildAccount {
     List<Withdrawal>? requests,
     List<Loan>? loans,
     List<LedgerEntry>? ledger,
-  }) : wishes = wishes ?? [],
+  }) : productRates = productRates ?? {},
+       productVersions = productVersions ?? {},
+       wishes = wishes ?? [],
        quickTasks = quickTasks ?? [],
        tasks = tasks ?? [],
        positions = positions ?? [],
@@ -228,6 +259,11 @@ class ChildAccount {
       sequence,
       goal,
       weeklyPlan;
+  final Map<String, int> productRates, productVersions;
+  bool marketEnabled;
+  int marketReturn, marketSpent;
+  int rateFor(String product) => productRates[product] ?? rateBps;
+  int versionFor(String product) => productVersions[product] ?? termsVersion;
   final List<Wish> wishes;
   final List<QuickTask> quickTasks;
   Wish? get mainWish =>
@@ -250,7 +286,7 @@ class ChildAccount {
       .where((p) => p.status == 'pending')
       .fold(0, (v, p) => v + p.amount);
   int get assets => wallet + holding + pendingCash;
-  int get freeBudget => budget - bonusEarned - reserved;
+  int get freeBudget => budget - bonusEarned - marketSpent - reserved;
   int get debt =>
       loans.where((l) => l.status == 'active').fold(0, (v, l) => v + l.balance);
   int get conservative => assets - debt;
@@ -268,9 +304,26 @@ class ChildAccount {
     require(wallet >= 0 && assets <= Money.maxCents, '零钱不足或超过账户范围');
     require(freeBudget >= 0, '不能侵占已结算与已承诺的收益预算');
     require(
-      assets == laborTotal + bonusEarned - withdrawn - repaidTotal,
+      assets ==
+          laborTotal + bonusEarned + marketReturn - withdrawn - repaidTotal,
       '账务核对未通过，本次操作未保存',
     );
+    require(marketSpent >= 0 && marketSpent >= marketReturn, '波动收益预算核对未通过');
+    for (final p in positions) {
+      final product = Product.all[p.product];
+      require(product != null, '未知持有产品');
+      if (product!.market) {
+        require(
+          p.termsVersion == 1 &&
+              p.rateBps == 0 &&
+              p.days == product.days &&
+              p.expected ==
+                  Money.rounded(p.principal, product.gainCapBps, 1, 10000),
+          '波动持有边界与预留不一致',
+        );
+        require(Day.add(p.start, p.days) == p.end, '波动持有日期不一致');
+      }
+    }
     final received = <String, int>{};
     void checkPayment(String? wishId, bool used, bool paid, int amount) {
       require(!used || wishId != null, '到手付款缺少心愿关联');

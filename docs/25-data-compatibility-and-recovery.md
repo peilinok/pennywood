@@ -6,12 +6,14 @@ Protect the ledger before protecting the build. Code rollback and data recovery 
 
 | Item | Supported behavior | Limitation |
 |---|---|---|
-| Live database | New schema5 databases; explicit upgrades from schemas 1, 2, 3, and 4 | Downgrading a schema5 database to older apps is not supported or validated |
+| Live database | New schema6 databases; explicit upgrades from schemas 1, 2, 3, 4, and 5 | Downgrading a schema6 database to older apps is not supported or validated |
 | Migration safety | Consistent `.before-vN.sqlite` copy before upgrading a file database; migration transaction | Private snapshot is not an encrypted portable family backup; protect its location |
-| Archive reader | Authenticated encrypted schema4/schema5 archives | Unsupported future formats must not overwrite local data |
+| Archive reader | Authenticated encrypted schema4/schema5/schema6 archives | Unsupported future formats must not overwrite local data |
 | Restore | Validate in isolation, authorize matching family, save an encrypted before-copy, replace transactionally | Snapshot replacement, not merging; later transactions are lost from the active copy |
 | Credentials | Local Keychain passcode derivation and separate recovery code | Archive never clones passcodes/recovery codes; changing devices needs local authorization/setup |
 | Multi-device use | One authoritative local accounting device | iCloud Drive files are backups; live synchronization is unimplemented |
+
+Schema6 adds shared task/product terms and per-child consent, signed market return, and gross market payout. Migration selects the previously active child's future templates/rate as the shared starting point; historical task/position promises and legacy rows remain. Different former rates stop silent dividend renewal. [ADR 0002](adr/0002-shared-agreements-and-teaching-market.md) defines bounds and recovery.
 
 Keep append-only ledger records, unique operation IDs, original terms, family/child keys, and payment associations through migration and backup. Preserve both children and demo separation. Never reset a database, drop history, regenerate family identity, or clear all Keychain items to recover from an error.
 

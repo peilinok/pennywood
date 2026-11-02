@@ -7,6 +7,8 @@ import '../app/screens.dart' show field, tell, userMessage;
 import '../domain/engine.dart';
 import '../domain/model.dart';
 import '../domain/money.dart';
+import '../domain/market.dart';
+import 'investment_lab.dart';
 
 int months(String value) {
   final n = int.tryParse(value);
@@ -15,9 +17,15 @@ int months(String value) {
 }
 
 class TownPanel extends StatefulWidget {
-  const TownPanel(this.controller, this.initial, {super.key});
+  const TownPanel(
+    this.controller,
+    this.initial, {
+    this.lockOnClose = true,
+    super.key,
+  });
   final TownController controller;
   final String initial;
+  final bool lockOnClose;
   @override
   State<TownPanel> createState() => _TownPanelState();
 }
@@ -76,17 +84,29 @@ class _TownPanelState extends State<TownPanel> {
     List<(String, String)> fields, {
     String? note,
     String? distribution,
+    Future<void> Function(List<String>)? onSubmit,
   }) => showDialog<List<String>>(
     context: context,
     barrierDismissible: false,
-    builder: (_) =>
-        BookForm(title, fields, note: note, distribution: distribution),
+    builder: (_) => BookForm(
+      title,
+      fields,
+      note: note,
+      distribution: distribution,
+      onSubmit: onSubmit,
+      submitLabel: onSubmit == null ? null : '保存约定',
+    ),
   );
-  Widget button(String label, VoidCallback onTap, {String? key}) => Padding(
+  Widget button(
+    String label,
+    VoidCallback onTap, {
+    String? key,
+    bool enabled = true,
+  }) => Padding(
     padding: const EdgeInsets.only(right: 8, bottom: 6),
     child: FilledButton.tonal(
       key: key == null ? null : Key(key),
-      onPressed: c.busy ? null : onTap,
+      onPressed: c.busy || !enabled ? null : onTap,
       child: Text(label),
     ),
   );
@@ -179,7 +199,9 @@ class _TownPanelState extends State<TownPanel> {
                       key: const Key('close-panel'),
                       tooltip: '关闭面板',
                       onPressed: () {
-                        if (widget.initial == 'parent') c.lock();
+                        if (widget.initial == 'parent' && widget.lockOnClose) {
+                          c.lock();
+                        }
                         Navigator.pop(context);
                       },
                       icon: const Icon(Icons.close),
@@ -286,7 +308,7 @@ class _TownPanelState extends State<TownPanel> {
     intro('savings', '我是阿栗。你赚来的钱值得认真安排。预计收益要等到约定日期结算，才成为零钱。'),
     paper(
       Text(
-        '可用零钱 ¥${Money.format(s.wallet)} · 持有本金 ¥${Money.format(s.holding)}\n家长新计划年化 ${(s.rateBps / 100).toStringAsFixed(2)}% · 可用收益预算 ¥${Money.format(s.freeBudget)}',
+        '可用零钱 ¥${Money.format(s.wallet)} · 持有本金 ¥${Money.format(s.holding)}\n各产品分别约定利率 · 可用收益预算 ¥${Money.format(s.freeBudget)}',
       ),
     ),
     Wrap(
@@ -295,15 +317,22 @@ class _TownPanelState extends State<TownPanel> {
       children: [
         for (final p in Product.all.values)
           SizedBox(
-            width: 245,
+            width: math.min(245, MediaQuery.sizeOf(context).width - 76),
             child: paper(
               Column(
                 children: [
-                  SvgPicture.asset(
-                    'assets/svg/tree-annual.svg',
-                    width: 70,
-                    height: 80,
-                  ),
+                  if (p.market)
+                    Icon(
+                      p.id == 'lowVol' ? Icons.ssid_chart : Icons.show_chart,
+                      size: 70,
+                      color: PaperColors.of(context).green,
+                    )
+                  else
+                    SvgPicture.asset(
+                      'assets/svg/tree-annual.svg',
+                      width: 70,
+                      height: 80,
+                    ),
                   Text(
                     p.name,
                     style: const TextStyle(
@@ -312,10 +341,23 @@ class _TownPanelState extends State<TownPanel> {
                     ),
                   ),
                   Text(
-                    '${p.days} 天${p.id == 'dividend' ? '一期' : '到期'} · ${p.minimum ~/ 100} 元起',
+                    '${p.days} 天${p.id == 'dividend' || p.market ? '一期' : '到期'} · ${p.minimum ~/ 100} 元起',
                   ),
+                  Text(
+                    p.market
+                        ? '非保本 · 最高亏损 ${p.lossCapBps ~/ 100}%'
+                        : '约定年化 ${(s.rateFor(p.id) / 100).toStringAsFixed(2)}%',
+                  ),
+                  if (p.market)
+                    Text(p.id == 'lowVol' ? '小起伏，分红也会变' : '向上探索，途中会回调'),
+                  if (p.market && !s.marketEnabled) const Text('请先和家长一起开启'),
                   const SizedBox(height: 8),
-                  button('了解并存入', () => deposit(p), key: 'deposit-${p.id}'),
+                  button(
+                    p.market && !s.marketEnabled ? '等待家长开启' : '了解并存入',
+                    () => deposit(p),
+                    key: 'deposit-${p.id}',
+                    enabled: !p.market || s.marketEnabled,
+                  ),
                 ],
               ),
             ),
@@ -334,21 +376,28 @@ class _TownPanelState extends State<TownPanel> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             Text(
-              '本金 ¥${Money.format(p.principal)} · 本期年化 ${(p.rateBps / 100).toStringAsFixed(2)}%\n${p.start} 至 ${p.end} · 本期预计收益 ¥${Money.format(p.expected)}\n条款版本 ${p.termsVersion}，已由家长预留本期收益',
+              Product.all[p.product]!.market
+                  ? '投入本金 ¥${Money.format(p.principal)} · 参考价值 ¥${Money.format(p.principal + TeachingMarket.profit(p, s.date))}\n${p.start} 至 ${p.end} · 本期最多收益 ¥${Money.format(p.expected)} 已预留\n参考涨跌未入账；到期或取回时结算，可能亏损本金。'
+                  : '本金 ¥${Money.format(p.principal)} · 本期年化 ${(p.rateBps / 100).toStringAsFixed(2)}%\n${p.start} 至 ${p.end} · 本期预计收益 ¥${Money.format(p.expected)}\n条款版本 ${p.termsVersion}，已由家长预留本期收益',
               style: const TextStyle(height: 1.7),
             ),
             Wrap(
               children: [
                 button('提前取回', () async {
                   final days = Day.difference(p.start, s.date).clamp(0, p.days);
-                  final profit = Money.interest(
-                    p.principal,
-                    math.min(10, p.rateBps),
-                    days,
-                  );
+                  final market = Product.all[p.product]!.market;
+                  final profit = market
+                      ? TeachingMarket.profit(p, s.date)
+                      : Money.interest(
+                          p.principal,
+                          math.min(10, p.rateBps),
+                          days,
+                        );
                   if (await confirm(
                     '提前取回这份计划？',
-                    '持有 $days 天，以本期利率和 0.10% 中较低者重算，收益 ¥${Money.format(profit)}。本金 ¥${Money.format(p.principal)} 完整取回。',
+                    market
+                        ? '投入 ¥${Money.format(p.principal)}，当前涨跌 ¥${Money.format(profit)}。本次实际取回 ¥${Money.format(p.principal + profit)}，亏损会记入账本。'
+                        : '持有 $days 天，以本期利率和 0.10% 中较低者重算，收益 ¥${Money.format(profit)}。本金 ¥${Money.format(p.principal)} 完整取回。',
                   )) {
                     await run('redeem', [p.id]);
                   }
@@ -373,7 +422,7 @@ class _TownPanelState extends State<TownPanel> {
           ],
         ),
       ),
-    button('产品小课堂', () => setState(() => tab = 'lesson')),
+    button('产品小课堂', () => setState(() => tab = 'lesson'), key: 'open-lesson'),
     note('这些是家庭教学计划，收益由家长按事先约定和预算承担，不是市场报价。年轮/小树到期自动回钱包；需要本息续存时，可重新确认一笔存入。'),
   ];
   Future<void> deposit(Product p) async {
@@ -381,18 +430,23 @@ class _TownPanelState extends State<TownPanel> {
       '存入${p.name}',
       [('存入金额（元）', '${p.minimum ~/ 100}')],
       distribution: p.id == 'dividend' ? s.distribution : null,
-      note:
-          '${p.days} 天，家庭约定年化 ${(s.rateBps / 100).toStringAsFixed(2)}%，条款版本 ${s.termsVersion}。存入只转移本金。',
+      note: p.market
+          ? '${p.days} 天家庭教学行情，最多亏损 ${p.lossCapBps ~/ 100}%，最多收益 ${p.gainCapBps ~/ 100}%。上涨不是保证，取回会实际记涨跌；没有真实证券交易。'
+          : '${p.days} 天，家庭约定年化 ${(s.rateFor(p.id) / 100).toStringAsFixed(2)}%，条款版本 ${s.versionFor(p.id)}。存入只转移本金。',
     );
     if (data == null) return;
     try {
       final amount = Money.parse(data[0]);
       final mode = p.id == 'dividend' ? data[1] : s.distribution;
       Engine.mode(mode);
-      final profit = Money.interest(amount, s.rateBps, p.days);
+      final profit = p.market
+          ? TeachingMarket.reserve(p.id, amount)
+          : Money.interest(amount, s.rateFor(p.id), p.days);
       if (await confirm(
         '确认这次家庭约定',
-        '本金 ¥${Money.format(amount)} · ${p.days} 天\n本期预计收益 ¥${Money.format(profit)}，从家长预算预留。\n${p.id == 'dividend' ? (mode == 'cash' ? '收益进零钱，本金续期' : '收益与本金一起续期') : '到期本息回零钱钱包'}。',
+        p.market
+            ? '${s.name}投入 ¥${Money.format(amount)} · ${p.days} 天\n最多亏损 ¥${Money.format(Money.rounded(amount, p.lossCapBps, 1, 10000))}；最多收益 ¥${Money.format(profit)}（确认存入时从预算预留）。\n到期本息与涨跌回零钱。家长已允许波动投资，本金不会保证完整返还。'
+            : '本金 ¥${Money.format(amount)} · ${p.days} 天\n本期预计收益 ¥${Money.format(profit)}，从家长预算预留。\n${p.id == 'dividend' ? (mode == 'cash' ? '收益进零钱，本金续期' : '收益与本金一起续期') : '到期本息回零钱钱包'}。',
       )) {
         await run('buy', [p.id, amount, mode]);
       }
@@ -786,28 +840,51 @@ class _TownPanelState extends State<TownPanel> {
       heading('收益约定与预算'),
       paper(
         Text(
-          '阶段总预算 ¥${Money.format(s.budget)}\n已结算 ¥${Money.format(s.bonusEarned)} · 有效承诺预留 ¥${Money.format(s.reserved)}\n可用 ¥${Money.format(s.freeBudget)} · 新计划年化 ${(s.rateBps / 100).toStringAsFixed(2)}%',
+          '阶段总预算 ¥${Money.format(s.budget)}\n已结算固定收益 ¥${Money.format(s.bonusEarned)} · 波动收益支出 ¥${Money.format(s.marketSpent)} · 有效承诺预留 ¥${Money.format(s.reserved)}\n可用 ¥${Money.format(s.freeBudget)} · 预算仅属于${s.name}',
           style: const TextStyle(height: 1.8),
         ),
       ),
       button('调整后续约定', () async {
-        final data = await form('家长约定', [
-          ('阶段收益总预算（元）', Money.format(s.budget)),
-          ('新计划家庭约定年化（%）', (s.rateBps / 100).toStringAsFixed(2)),
-          ('孩子称呼', s.name),
-        ], note: '预算不能低于已结算与预留承诺之和；预算不会自动按月恢复。改利率只影响新计划，分红下一期需孩子重新安排。');
-        if (data != null) {
-          try {
-            await run('settings', [
-              Money.parse(data[0]),
-              Money.parse(data[1]),
-              data[2],
-            ]);
-          } catch (e) {
-            if (mounted) tell(context, e);
-          }
+        await form(
+          '${s.name}的预算与称呼',
+          [('阶段收益总预算（元）', Money.format(s.budget)), ('孩子称呼', s.name)],
+          note: '预算由每个孩子独立使用，不能低于已结算支出与预留承诺之和；亏损不会补回预算。',
+          onSubmit: (data) =>
+              c.perform('settings', [Money.parse(data[0]), data[1]]),
+        );
+      }, key: 'edit-child-budget'),
+      heading('全家共用的产品利率'),
+      for (final product in Product.all.values.where((p) => !p.market))
+        Text(
+          '${product.name} · ${product.days} 天 · 年化 ${(s.rateFor(product.id) / 100).toStringAsFixed(2)}%',
+        ),
+      button('分别设置产品利率', () async {
+        await form(
+          '全家共用 · 各产品年化',
+          [
+            for (final p in Product.all.values.where((p) => !p.market))
+              ('${p.name}（%）', (s.rateFor(p.id) / 100).toStringAsFixed(2)),
+          ],
+          note: '每项 0%–10%，全家共用。已有持有按原条款兑现；只改一种产品，不影响其他产品续期。',
+          onSubmit: (data) => c.perform('familyRates', [
+            for (final value in data) Money.parse(value),
+          ]),
+        );
+      }, key: 'edit-product-rates'),
+      heading('${s.name}的波动投资权限'),
+      note(
+        '红利低波、成长高波使用现实零钱记涨跌。30 天一期；低波最多亏损 10%、收益 5%，高波最多亏损 50%、收益 20%。每笔最高收益先占用本孩子预算，到期或取回结算后释放剩余预留。',
+      ),
+      button(s.marketEnabled ? '暂停新波动投资' : '家长允许波动投资', () async {
+        if (await confirm(
+          s.marketEnabled ? '暂停新存入？' : '和孩子一起确认亏损风险',
+          s.marketEnabled
+              ? '已有持有仍按原边界结算，孩子可以取回。'
+              : '${s.name}会使用现实零钱，亏损会实际减少积累；高波一笔最多可能损失一半本金。收益由家长预算承担。这是家庭教学行情，并非真实基金或纳指。',
+        )) {
+          await run('marketPermission', [!s.marketEnabled]);
         }
-      }),
+      }, key: 'market-permission'),
       heading('实际领取交付'),
       for (final r in s.requests.where((r) => r.status == 'pending'))
         paper(
@@ -856,8 +933,13 @@ class _TownPanelState extends State<TownPanel> {
     var reinvest = base, simplePrincipal = base, withdrawnYield = 0;
     final points = <(int, int)>[(base, base)];
     for (var i = 0; i < years; i++) {
-      reinvest += Money.interest(reinvest, s.rateBps, 365) + annualAdd;
-      withdrawnYield += Money.interest(simplePrincipal, s.rateBps, 365);
+      reinvest +=
+          Money.interest(reinvest, s.rateFor('annual'), 365) + annualAdd;
+      withdrawnYield += Money.interest(
+        simplePrincipal,
+        s.rateFor('annual'),
+        365,
+      );
       simplePrincipal += annualAdd;
       points.add((reinvest, simplePrincipal + withdrawnYield));
     }
@@ -865,12 +947,14 @@ class _TownPanelState extends State<TownPanel> {
       intro('growth', '新的劳动增加本金，收益留下也会参与下一次积累。我们把真实记录和未来假设分开看。'),
       paper(
         Text(
-          '已兑现劳动 ¥${Money.format(s.laborTotal)} · 已结算收益 ¥${Money.format(s.bonusEarned)}\n已实际领取 ¥${Money.format(s.withdrawn)} · 已偿还 ¥${Money.format(s.repaidTotal)}',
+          '已兑现劳动 ¥${Money.format(s.laborTotal)} · 已结算收益 ¥${Money.format(s.bonusEarned)}\n已实际领取 ¥${Money.format(s.withdrawn)} · 已偿还 ¥${Money.format(s.repaidTotal)} · 波动投资累计涨跌 ¥${Money.format(s.marketReturn)}',
           style: const TextStyle(height: 1.8),
         ),
       ),
       heading('如果把收益也留下？ · 预计'),
-      Text('$years 年后 · 当前家庭约定年化 ${(s.rateBps / 100).toStringAsFixed(2)}%'),
+      Text(
+        '$years 年后 · 当前家庭约定年化 ${(s.rateFor('annual') / 100).toStringAsFixed(2)}%',
+      ),
       Slider(
         value: years.toDouble(),
         min: 1,
@@ -896,7 +980,10 @@ class _TownPanelState extends State<TownPanel> {
       ),
       heading('已经发生的收益故事'),
       for (final l
-          in s.ledger.where((l) => l.kind == 'yield').toList().reversed)
+          in s.ledger
+              .where((l) => l.kind == 'yield' || l.kind == 'market-return')
+              .toList()
+              .reversed)
         ListTile(
           title: Text(l.title),
           subtitle: Text(l.date),
@@ -906,21 +993,7 @@ class _TownPanelState extends State<TownPanel> {
   }
 
   List<Widget> lesson() => [
-    heading('分红时，钱没有凭空变多'),
-    SvgPicture.asset('assets/svg/tree-annual.svg', height: 90),
-    paper(
-      const Text(
-        '分红前：100 份 × 1.03 元 = 103 元\n每份分红 0.03 元后，除息净值为 1.00 元。\n\n现金分红：100 份 × 1.00 元 + 3 元现金 = 103 元\n红利再投：103 份 × 1.00 元 = 103 元\n\n两种方式在分红时总额相同，区别是收益的下一站。',
-        style: TextStyle(height: 1.9),
-      ),
-    ),
-    heading('净值也可能下降'),
-    paper(
-      const Text(
-        '100 份 × 0.95 元 = 95 元。价格变化可能带来亏损。\n课堂只作教学演示，不使用你现实劳动赚来的钱进行基金交易。',
-        style: TextStyle(height: 1.8),
-      ),
-    ),
+    const InvestmentLab(),
     button('回储蓄小屋', () => setState(() => tab = 'savings')),
   ];
 }
@@ -933,11 +1006,13 @@ class BookForm extends StatefulWidget {
     this.distribution,
     this.wishes,
     this.onSubmit,
+    this.submitLabel,
     super.key,
   });
   final String title;
   final List<(String, String)> fields;
   final String? note;
+  final String? submitLabel;
   final String? distribution;
   final List<Wish>? wishes;
   final Future<void> Function(List<String>)? onSubmit;
@@ -1107,7 +1182,7 @@ class _BookFormState extends State<BookForm> {
                 ? '正在保存…'
                 : widget.onSubmit == null
                 ? '继续'
-                : '保存申请',
+                : widget.submitLabel ?? '保存申请',
           ),
         ),
       ],

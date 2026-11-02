@@ -85,3 +85,7 @@ Earlier `ui-ux-pro-max` searches for `kids education playful` suggested Claymorp
 Feedback on the earlier purple/multicolor palette led to paper cards and fewer broad accent colors. Chestnut comes from the squirrel/wood, green from leaves/grass, wheat from the coin. Concentrate saturation in artwork and necessary actions rather than giving every card a theme color.
 
 Targeted `color`, `organic natural warm`, and `craft handmade` searches returned flower-shop, food, and winery palettes unsuitable for this picture-book app. The semantic palette was manually derived from existing art and measured in both themes; the search did not automatically replace this system or upgrade dependencies.
+
+## Investment learning interactions
+
+The native product classroom follows the existing paper/chestnut/green palette and squirrel assets. Use a solid labeled curve and a dotted labeled curve, inspectable values, a named time slider with step buttons, finite playback with pause/resume, and direct results for reduced motion. The compounding tree grows by scale; dividend allocation uses a short state transition. No game animation, curve replay, or classroom scenario changes accounting state or real dates. Keep the classroom's unbounded hypothetical journeys distinct from real 30-day investment boundaries. Family product settings are shared; budgets and permission remain visibly child-specific.
