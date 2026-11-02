@@ -45,11 +45,11 @@ For physical devices, open `ios/Runner.xcworkspace` in Xcode and choose your own
 
 ```sh
 ./scripts/check.sh
-python3 scripts/test_publication.py
-python3 scripts/check-publication.py
+PENNYWOOD_GITLEAKS=YOUR_GITLEAKS_EXECUTABLE ./scripts/check-secrets.sh
+./scripts/check-ios.sh
 ```
 
-These check locked dependencies, Dart formatting, static analysis, host tests, and publication safeguards. Use `--staged` for actual index blobs and `--history` for all locally reachable commits. Publication checks cover sensitive files, common credentials and personal paths, links, and English documentation/commit metadata.
+The common check covers locked dependencies, formatting, fatal analysis, host/tooling tests, module boundaries, reference cases/prototype builds, and publication/history safeguards. The secret check requires gitleaks 8.30.1 with default rules. The iOS check creates disposable iPhone/iPad simulators for a production build and isolated family/restart flows; it requires macOS/Xcode and an installed runtime. Raw evidence is not uploaded. Use publication `--staged` for actual index blobs and `--history` for all locally reachable commits.
 
 Version 0.3.6 fixes secrets remaining revealed after backgrounding and an incorrect recovery hint. Both regressions failed before the fixes. See [native validation](docs/10-native-validation.md) and the [sanitized summary](evidence/public/validation-summary.json).
 
@@ -65,6 +65,8 @@ Earlier 0.3.5 physical-device validation passed four local core checks on each o
 | Interaction and visual design | [Wishes and sharing](docs/08-wishes-and-family-sharing.md), [UI / UX](docs/09-wish-journal-ui-ux.md), [design system](design-system/pennywood/MASTER.md) |
 | Adaptation and remaining work | [Adaptive validation](docs/11-adaptive-layout-validation.md), [delivery checklist](docs/12-delivery-checklist.md) |
 | Review and publication | [Project review](docs/21-project-review.md), [privacy checks](docs/22-publication-and-privacy.md) |
+| AI work and regression prevention | [Contributing](CONTRIBUTING.md), [feature matrix](docs/23-feature-regression-matrix.md), [code/test standards](docs/26-code-and-test-standards.md) |
+| Versions, recovery, and decisions | [Release policy](docs/24-versioning-and-release.md), [data compatibility](docs/25-data-compatibility-and-recovery.md), [ADRs](docs/adr/README.md), [changelog](CHANGELOG.md) |
 
 ## Reference prototypes
 

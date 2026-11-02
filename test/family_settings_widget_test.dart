@@ -91,7 +91,12 @@ void main() {
       await tester.runAsync(
         () => tester.tap(find.byKey(const Key('action-save'))),
       );
-      await waitFor(tester, () => exported != null);
+      await waitFor(
+        tester,
+        () =>
+            exported != null &&
+            find.textContaining('已保存到所选位置').evaluate().isNotEmpty,
+      );
       final verified = await tester.runAsync(
         () => FamilyBackup(db, c.service.auth).read(exported!, '独立备份密码-2026'),
       );

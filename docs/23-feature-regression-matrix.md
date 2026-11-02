@@ -1,0 +1,40 @@
+# Feature Regression Matrix
+
+IDs are stable contracts, not a count of screens. Never reuse an ID or silently remove a row. Mark deliberate replacements as superseded with a product decision and replacement ID. Link every behavior PR to affected IDs and add assertions for new cases. Test paths below identify existing coverage; they do not assert that a particular commit ran it.
+
+## Protected local features
+
+| ID | Behavior that must remain true | Automated evidence | Additional acceptance |
+|---|---|---|---|
+| FAMILY-001 | Real onboarding starts at zero with no fixed passcode, wishes, or paid agreements; demo data stays separate | `test/database_service_test.dart`, `test/wishboard_service_test.dart`, `test/widget_test.dart` | Fresh install on iPhone and iPad |
+| FAMILY-002 | Children have independent cash, tasks, wishes, debt, budgets, and scenes; cross-child IDs are rejected | `test/database_service_test.dart`, `test/wishboard_service_test.dart`, `test/wish_finance_test.dart` | Switch children during the native flow |
+| TASK-001 | Submission and parent checking do not credit money; confirmed actual payment credits exactly once | `test/database_service_test.dart`, `test/wishboard_service_test.dart`, `test/wishboard_widget_test.dart` | `integration_test/family_release_test.dart` |
+| TASK-002 | Quick tasks allow withdrawal, feedback, and rework; one daily instance; old promises survive changed/paused agreements | `test/wishboard_service_test.dart`, `test/family_lifecycle_test.dart` | Prior-day pending task remains visible |
+| WISH-001 | One primary wish per child; switching, editing, archiving, and savings milestones never create or debit money | `test/wishboard_service_test.dart`, `test/family_lifecycle_test.dart` | Native wish journey |
+| WISH-002 | Gift receipt uses actual payments exactly once, permits multiple payment sources, and never erases debt or counts advances as savings | `test/wish_finance_test.dart`, `test/family_lifecycle_test.dart` | `integration_test/family_release_test.dart` |
+| MONEY-001 | Integer cents, explicit half-up rounding, conservation, and independent cash/holdings/frozen withdrawals/debt | `test/golden_cases_test.dart`, `test/wish_finance_test.dart` | Real finance regression before release |
+| INVEST-001 | Deposits transfer principal; settlement is once per period; cash and reinvestment allocate yield correctly | `test/golden_cases_test.dart`, `test/database_service_test.dart` | `integration_test/finance_test.dart` |
+| INVEST-002 | Budget/rate changes cannot cancel existing promises; renewal rechecks affordability and agreed terms | `test/golden_cases_test.dart` | Finance acceptance with unchanged snapshots |
+| LOAN-001 | Offer, child acceptance, and actual funding precede debt; principal never enters the wallet | `test/golden_cases_test.dart`, `test/wish_finance_test.dart` | Native advance/gift flow |
+| LOAN-002 | Repayment is active and due-date gated; insufficient cash is atomic; payoff waives future interest; no auto-debit | `test/golden_cases_test.dart` | Monthly and early-payoff native flow |
+| DATE-001 | Injected family dates drive catch-up; repeated resume does not double-settle; month-end/leap-year rules hold | `test/golden_cases_test.dart`, `test/database_service_test.dart`, `test/wishboard_widget_test.dart` | Device open/resume over a date boundary |
+| AUTH-001 | Parent capabilities bind family/child and expire on exit, switching, or backgrounding; late unlock cannot restore authority | `test/backup_auth_test.dart`, `test/wishboard_widget_test.dart`, `test/family_lifecycle_widget_test.dart` | Background and resume on both device families |
+| AUTH-002 | Secrets are cleared/concealed on inactive/background; ordinary forms survive; recovery never bypasses credentials | `test/credential_visibility_test.dart`, `test/backup_auth_test.dart`, `test/family_settings_widget_test.dart` | Human privacy and recovery exercise |
+| DATA-001 | Failure rolls back business rows, money, ledger, and operation IDs; retries/concurrent taps cannot double-pay | `test/database_service_test.dart`, `test/wishboard_service_test.dart` | Native save then independent process restart |
+| DATA-002 | Schema 1-4 upgrades retain ledger, operations, links, and child state; migration snapshots survive; reopening retains data | `test/database_service_test.dart`, `test/wishboard_service_test.dart`, `test/family_lifecycle_test.dart`, `test/wish_finance_test.dart` | Upgrade an isolated old install before any schema release |
+| DATA-003 | Encrypted schema4/5 backups reject tampering, wrong passwords, and wrong families; restore preserves a before-copy and idempotency | `test/backup_auth_test.dart`, `test/wish_finance_test.dart` | `integration_test/family_release_test.dart` and its restart companion |
+| UI-001 | Window/orientation changes retain child, page, ordinary forms, and account; both themes and large text avoid overflow | `test/wishboard_widget_test.dart`, `test/family_lifecycle_widget_test.dart` | iPhone portrait/landscape; iPad directions and windows |
+| UI-002 | Reduced motion, text contrast, readable money, and scroll semantics remain usable | `test/accessibility_test.dart`, `test/system_motion_test.dart`, `test/named_page_scroll_test.dart` | Human VoiceOver; iPadOS 26 windows remain pending |
+| SCENE-001 | Optional town navigation avoids obstacles and keeps scene state; exploration never earns money | `test/navigation_test.dart`, `test/game_lifecycle_test.dart`, `test/database_service_test.dart` | Native walk, occlusion, and building entry |
+
+`./scripts/check.sh` runs the entire host suite, including all 26 reference accounting cases. `./scripts/check-ios.sh` runs the isolated family-release flow and then a second process verifying persisted payments, debt, credentials, and child isolation, on disposable iPhone and iPad simulators. Other native flows above are additional manual/scheduled checks; CI does not claim to execute every integration file.
+
+## Explicitly unimplemented or unverified
+
+| ID | Contract for future implementation | Current state |
+|---|---|---|
+| SYNC-001 | Same-Apple-Account family synchronization with explicit device/parent authority | Not implemented; zero real CloudKit round trips |
+| SYNC-002 | Duplicate/out-of-order/offline sync, account changes, and multiple-parent conflicts preserve local contracts | Not implemented; local idempotency is not sync validation |
+| DEVICE-001 | Full release-specific physical finance/backup and accessibility acceptance | Partial historical evidence only; see [delivery checklist](12-delivery-checklist.md) |
+
+Do not turn a pending row into a pass based on compilation, a browser preview, or an older release. Record the exact candidate SHA and evidence level in each delivery.

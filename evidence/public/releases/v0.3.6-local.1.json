@@ -1,0 +1,34 @@
+{
+  "tag": "v0.3.6-local.1",
+  "source_commit": "0ac9298829c47e3df4160a41dae6a0cb3f9424ad",
+  "kind": "local-feature-baseline",
+  "app_version": "0.3.6+10",
+  "database_schema": 5,
+  "database_upgrade_inputs": [1, 2, 3, 4],
+  "archive_header": "Pennywood-encrypted-backup:1:schema5",
+  "archive_readable_schemas": [4, 5],
+  "database_downgrade": "Unsupported and unverified; prefer a forward fix.",
+  "toolchain": {
+    "flutter": "3.35.7",
+    "dart": "3.9.2",
+    "xcode": "16.1",
+    "ios_sdk": "18.1",
+    "cocoapods": "1.16.2"
+  },
+  "recorded_checks": {
+    "format_and_analysis": "passed",
+    "host_tests": 99,
+    "publication_checker_tests": 12,
+    "reference_accounting_cases": 26,
+    "clean_simulator_debug_build": "passed",
+    "reachable_public_history": "passed",
+    "gitleaks_8_30_1_default_rules": "zero findings"
+  },
+  "evidence": ["evidence/public/validation-summary.json", "docs/10-native-validation.md"],
+  "limitations": [
+    "No fresh physical-device regression for 0.3.6; 0.3.5 physical evidence is historical.",
+    "No production cross-device sync; zero real CloudKit round trips.",
+    "Human VoiceOver, full physical finance/backup regression, and iPadOS 26 windows remain pending.",
+    "No TestFlight or App Store release; this tag identifies source, not distribution acceptance."
+  ]
+}

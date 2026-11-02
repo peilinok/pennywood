@@ -38,6 +38,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('Finance panel introduction remains readable in narrow windows', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final width in [300.0, 375.0, 414.0]) {
+      tester.view.physicalSize = Size(width, 812);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: paperTheme(Brightness.light),
+          home: Scaffold(body: TownPanel(c, 'loans')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'Window width $width');
+    }
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test(
     'Parent wish edits through the shared entry record the correct ledger role',
     () async {

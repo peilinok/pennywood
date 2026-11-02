@@ -39,3 +39,12 @@
 - Keep current implementation evidence separate from browser reference evidence. Publish only sanitized summaries in `evidence/public/`.
 - Update README run instructions and delivery status. Use repository-relative evidence links, never personal machine paths.
 - Review actual staged blobs and complete reachable history before publishing. Keep databases, backups, device identifiers, raw logs/screenshots, signing data, and private archives local. Use GitHub noreply commit identities.
+
+## AI delivery contract
+
+- Follow [CONTRIBUTING.md](CONTRIBUTING.md) for every task. State the goal, allowed scope, protected feature IDs, acceptance checks, and data/recovery implications before implementation.
+- Use one short-lived branch and PR per bounded task. Preserve the [regression matrix](docs/23-feature-regression-matrix.md); never remove features, weaken assertions, or skip failures just to pass checks.
+- Run `./scripts/check.sh`, default-rule secret scanning, and the relevant native checks. Required CI results belong to the current candidate, not an earlier commit.
+- Follow [code/test standards](docs/26-code-and-test-standards.md), [release rules](docs/24-versioning-and-release.md), and [data recovery](docs/25-data-compatibility-and-recovery.md). Record lasting decisions in [ADRs](docs/adr/README.md).
+- No routine force pushes, published-history rewrites, tag replacement, database resets, or production Keychain clearing. Use new revert/fix PRs; prefer forward repair after an incompatible data upgrade.
+- Merge/distribute only within the user's authorization. An existing authorization need not be requested again. Report remaining acceptance gaps rather than claiming an unverified release.

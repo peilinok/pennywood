@@ -39,6 +39,24 @@ class PublicationCheckTests(unittest.TestCase):
     def test_clean_tracked_files_pass(self):
         self.assertEqual(self.check('--staged')[0], 0)
 
+    def test_reviewed_governance_files_are_publishable(self):
+        for name in ['CONTRIBUTING.md', 'CHANGELOG.md', '.github/pull_request_template.md',
+                     '.github/workflows/ci.yml', '.github/CODEOWNERS', 'docs/adr/README.md']:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('# Synthetic governance fixture\n')
+        self.git('add', '.')
+        self.assertEqual(self.check('--staged')[0], 0)
+
+    def test_workflow_directory_does_not_allow_private_configuration(self):
+        path = self.root / '.github/.env'
+        path.parent.mkdir()
+        path.write_text('SYNTHETIC_SETTING=local-only\n')
+        self.git('add', '.')
+        code, report, _ = self.check('--staged')
+        self.assertEqual(code, 1)
+        self.assertTrue(any(p['rule'] == 'prohibited-file-or-config' for p in report['issues']))
+
     def test_staged_secret_cannot_hide_behind_clean_working_copy(self):
         path = self.root / 'lib/main.dart'
         path.write_text(self.token())
@@ -119,6 +137,34 @@ class PublicationCheckTests(unittest.TestCase):
         code, report, _ = self.check('--history')
         self.assertEqual(code, 1)
         self.assertTrue(any(p['rule'] == 'commit-metadata-must-be-english' for p in report['issues']))
+
+    def test_english_annotated_release_tag_passes(self):
+        self.git('commit', '-m', 'Synthetic release')
+        self.git('tag', '-a', 'v1.0.0', '-m', 'Synthetic local release')
+        self.assertEqual(self.check('--history')[0], 0)
+
+    def test_chinese_release_annotation_is_blocked(self):
+        self.git('commit', '-m', 'Synthetic release')
+        self.git('tag', '-a', 'v1.0.0', '-m', '\u4e2d\u6587')
+        code, report, _ = self.check('--history')
+        self.assertEqual(code, 1)
+        self.assertTrue(any(p['rule'] == 'tag-metadata-must-be-english' for p in report['issues']))
+
+    def test_private_tagger_email_is_blocked_without_echoing_value(self):
+        self.git('commit', '-m', 'Synthetic release')
+        self.git('config', 'user.email', 'private' + '@example.test')
+        self.git('tag', '-a', 'v1.0.0', '-m', 'Synthetic local release')
+        code, report, output = self.check('--history')
+        self.assertEqual(code, 1)
+        self.assertTrue(any(p['rule'] == 'tag-email-not-noreply' for p in report['issues']))
+        self.assertNotIn('private' + '@example.test', output)
+
+    def test_non_ascii_release_tag_is_blocked(self):
+        self.git('commit', '-m', 'Synthetic release')
+        self.git('tag', 'v1-\u4e2d\u6587')
+        code, report, _ = self.check('--history')
+        self.assertEqual(code, 1)
+        self.assertTrue(any(p['rule'] == 'tag-name-must-be-ascii' for p in report['issues']))
 
 
 if __name__ == '__main__':
