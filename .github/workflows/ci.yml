@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    name: Repository checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - name: Check repository and host behavior
+        run: ./scripts/check.sh
+      - name: Install checksum-verified gitleaks
+        env:
+          GITLEAKS_VERSION: '8.30.1'
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          checksums="gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          mkdir -p "$RUNNER_TEMP/pennywood-audit"
+          cd "$RUNNER_TEMP/pennywood-audit"
+          curl --fail --location --retry 3 --output "$archive" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
+          curl --fail --location --retry 3 --output "$checksums" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$checksums"
+          awk -v name="$archive" '$2 == name {print}' "$checksums" > selected-checksum.txt
+          test -s selected-checksum.txt
+          sha256sum --check selected-checksum.txt
+          tar -xzf "$archive" gitleaks
+          echo "PENNYWOOD_GITLEAKS=$RUNNER_TEMP/pennywood-audit/gitleaks" >> "$GITHUB_ENV"
+      - name: Scan tracked work and complete history with default rules
+        run: ./scripts/check-secrets.sh
+
+  native:
+    name: iOS (${{ matrix.device }})
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPhone, iPad]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      PENNYWOOD_IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-18-5
+      PENNYWOOD_DEVICE_KIND: ${{ matrix.device }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1
+        with:
+          ruby-version: '4.0.5'
+          bundler: none
+      - name: Pin CocoaPods and JSON to the lockfile toolchain
+        run: |
+          gem install json --version 2.18.0 --no-document
+          gem install cocoapods --version 1.16.2 --no-document
+          mkdir -p "$RUNNER_TEMP/pennywood-bin"
+          cat > "$RUNNER_TEMP/pennywood-bin/pod" <<'RUBY'
+          #!/usr/bin/env ruby
+          gem 'json', '= 2.18.0'
+          gem 'cocoapods', '= 1.16.2'
+          load Gem.bin_path('cocoapods', 'pod', '1.16.2')
+          RUBY
+          chmod +x "$RUNNER_TEMP/pennywood-bin/pod"
+          echo "$RUNNER_TEMP/pennywood-bin" >> "$GITHUB_PATH"
+      - name: Record toolchain
+        run: |
+          flutter --version
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
+          ruby --version
+          ruby -e 'gem "json", "= 2.18.0"; require "json"; puts "JSON #{JSON::VERSION}"'
+          pod --version
+      - name: Build production and check the isolated family and restart flows
+        run: ./scripts/check-ios.sh "$PENNYWOOD_DEVICE_KIND"
+
+  ios:
+    name: iOS simulator
+    if: ${{ always() }}
+    needs: [native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both device families to pass
+        env:
+          DEVICE_RESULTS: ${{ needs.native.result }}
+        run: test "$DEVICE_RESULTS" = success

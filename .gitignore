@@ -4,6 +4,9 @@
 !/.metadata
 !/AGENTS.md
 !/README.md
+!/CONTRIBUTING.md
+!/CHANGELOG.md
+!/.github/
 !/analysis_options.yaml
 !/pubspec.yaml
 !/pubspec.lock
@@ -53,6 +56,11 @@
 !/docs/13-user-guide-and-recovery.md
 !/docs/21-project-review.md
 !/docs/22-publication-and-privacy.md
+!/docs/23-feature-regression-matrix.md
+!/docs/24-versioning-and-release.md
+!/docs/25-data-compatibility-and-recovery.md
+!/docs/26-code-and-test-standards.md
+!/docs/adr/
 !/docs/research/
 
 # Local tool settings, dependency caches, and build artifacts.

@@ -33,8 +33,12 @@ BLOCKED_NAMES = [
     '*.mobileprovision', '*.provisionprofile', '*.keychain*', '*.log', '*.pyc',
     'Generated.xcconfig', 'flutter_export_environment.sh', 'selected-devices.json',
 ]
-ROOT_FILES = {'.gitignore', '.metadata', 'AGENTS.md', 'README.md', 'analysis_options.yaml', 'pubspec.yaml', 'pubspec.lock'}
-ROOT_DIRS = {'lib', 'test', 'integration_test', 'test_driver', 'scripts', 'ios', 'assets', 'design-system', 'docs', 'prototype', 'reference', 'evidence'}
+ROOT_FILES = {'.gitignore', '.metadata', 'AGENTS.md', 'README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'analysis_options.yaml', 'pubspec.yaml', 'pubspec.lock'}
+ROOT_DIRS = {'.github', 'lib', 'test', 'integration_test', 'test_driver', 'scripts', 'ios', 'assets', 'design-system', 'docs', 'prototype', 'reference', 'evidence'}
+
+
+def public_email(address):
+    return address.endswith('@users.noreply.github.com') or address == 'noreply@github.com'
 
 
 def git(*args):
@@ -151,7 +155,7 @@ def main():
                     issue('exact-private-needle', name, text.count('\n', 0, text.index(needle)) + 1)
             if name != UPSTREAM_EMAIL_FILE:
                 for match in EMAIL.finditer(text):
-                    if not match.group().endswith('@users.noreply.github.com'):
+                    if not public_email(match.group()):
                         issue('non-noreply-email-needs-review', name, text.count('\n', 0, match.start()) + 1)
         for name, text in texts.items():
             for match in re.finditer(r'!?\[[^\]]*\]\(([^)]+)\)', text):
@@ -167,12 +171,28 @@ def main():
         for commit in git('rev-list', '--all').decode().splitlines():
             metadata = git('show', '-s', '--format=%ae%x00%ce%x00%an%x00%cn%x00%B', commit).decode()
             author, committer, author_name, committer_name, message = metadata.split('\0', 4)
-            if not all(address.endswith('@users.noreply.github.com') for address in [author, committer]):
+            if not all(public_email(address) for address in [author, committer]):
                 issue('commit-email-not-noreply', commit)
             if HAN.search(author_name + committer_name + message):
                 issue('commit-metadata-must-be-english', commit)
             if any(s in metadata for s in needles):
                 issue('commit-metadata-private-needle', commit)
+        for ref in git('for-each-ref', '--format=%(refname)', 'refs/tags').decode().splitlines():
+            if not ref.isascii():
+                issue('tag-name-must-be-ascii', ref)
+            if git('cat-file', '-t', ref).decode().strip() != 'tag':
+                continue
+            metadata = git('cat-file', 'tag', ref).decode()
+            if HAN.search(metadata):
+                issue('tag-metadata-must-be-english', ref)
+            for match in EMAIL.finditer(metadata):
+                if not public_email(match.group()):
+                    issue('tag-email-not-noreply', ref)
+            for rule, pattern in RULES.items():
+                if pattern.search(metadata):
+                    issue('tag-' + rule, ref)
+            if any(s in metadata for s in needles):
+                issue('tag-metadata-private-needle', ref)
 
     result = {'scope': 'history' if args.history else 'staged' if args.staged else 'tracked-worktree',
               'tree_count': tree_count, 'file_version_count': len(checked), 'issue_count': len(issues), 'issues': issues}

@@ -118,22 +118,36 @@ class _TownPanelState extends State<TownPanel> {
       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
     ),
   );
-  Widget intro(String room, String speech) => Row(
-    children: [
-      SvgPicture.asset('assets/svg/room-$room.svg', width: 132, height: 88),
-      const SizedBox(width: 14),
-      Expanded(
-        child: paper(
-          Row(
-            children: [
-              SvgPicture.asset('assets/svg/mascot.svg', width: 38, height: 45),
-              const SizedBox(width: 12),
-              Expanded(child: Text(speech)),
-            ],
-          ),
+  Widget intro(String room, String speech) => LayoutBuilder(
+    builder: (context, constraints) {
+      final illustration = SvgPicture.asset(
+        'assets/svg/room-$room.svg',
+        width: 132,
+        height: 88,
+      );
+      final dialogue = paper(
+        Row(
+          children: [
+            SvgPicture.asset('assets/svg/mascot.svg', width: 38, height: 45),
+            const SizedBox(width: 12),
+            Expanded(child: Text(speech)),
+          ],
         ),
-      ),
-    ],
+      );
+      if (constraints.maxWidth < 480) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [illustration, const SizedBox(height: 12), dialogue],
+        );
+      }
+      return Row(
+        children: [
+          illustration,
+          const SizedBox(width: 14),
+          Expanded(child: dialogue),
+        ],
+      );
+    },
   );
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
