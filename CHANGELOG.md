@@ -9,6 +9,7 @@ Record user-visible changes and data compatibility in English. Release entries a
 - Add a contribution contract, stable regression IDs, release/recovery standards, code/test standards, and an ADR process for human and AI work.
 - Add PR ownership/templates, mandatory repository and iOS simulator CI, and full-history secret scanning. Review GitHub protection settings separately from files in this repository.
 - Align the Podfile checksum in the lockfile without changing dependency versions; pin CI CocoaPods to 1.16.2.
+- Attach native tests through authenticated, process-scoped retained simulator logs to avoid Flutter's live-log startup race; keep independent restart and all business assertions.
 - Keep version 0.3.6+10, Drift schema 5, accounting, and the encrypted-backup format unchanged. Increment the app/build before the next binary distribution.
 
 ### Fixed

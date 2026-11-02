@@ -16,6 +16,7 @@ PENNYWOOD_DART="$(dirname "$PENNYWOOD_FLUTTER")/dart"
 "$PENNYWOOD_FLUTTER" test --no-pub --reporter expanded
 python3 scripts/test_publication.py
 python3 scripts/test_repository_policy.py
+python3 scripts/test_ios_service_uri.py
 python3 scripts/check-repository.py
 python3 scripts/check-publication.py
 python3 scripts/check-publication.py --history

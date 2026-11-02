@@ -37,6 +37,7 @@ trap finish EXIT
 mkdir -p work
 PENNYWOOD_IOS_EVIDENCE="$(mktemp -d "$PWD/work/ios-check.XXXXXX")"
 "$PENNYWOOD_FLUTTER" pub get --enforce-lockfile
+printf '%s\n' 'Building the production simulator entry.'
 "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --target lib/main.dart
 
 # Choose only an available runtime/device type from the selected Xcode inventory.
@@ -65,15 +66,28 @@ print(runtime["identifier"])
   PENNYWOOD_DEVICE_TYPE="${PENNYWOOD_SIM_CONFIG%%$'\n'*}"
   PENNYWOOD_RUNTIME="${PENNYWOOD_SIM_CONFIG##*$'\n'}"
   PENNYWOOD_SIMULATOR="$(xcrun simctl create "Pennywood-CI-$PENNYWOOD_KIND" "$PENNYWOOD_DEVICE_TYPE" "$PENNYWOOD_RUNTIME")"
+  printf 'Booting the disposable %s simulator.\n' "$PENNYWOOD_KIND"
   xcrun simctl boot "$PENNYWOOD_SIMULATOR"
   xcrun simctl bootstatus "$PENNYWOOD_SIMULATOR" -b
   for PENNYWOOD_TARGET in family_release_test family_release_restart_test; do
-    # Flutter drive normally uninstalls on exit. Keep storage, then terminate explicitly
-    # so the companion is a new process reading the previous process's database.
-    "$PENNYWOOD_FLUTTER" drive --no-pub --debug --keep-app-running --no-uninstall-first -d "$PENNYWOOD_SIMULATOR" \
-      --driver test_driver/integration_test.dart --target "integration_test/$PENNYWOOD_TARGET.dart"
+    printf 'Building %s on %s.\n' "$PENNYWOOD_TARGET" "$PENNYWOOD_KIND"
+    "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --target "integration_test/$PENNYWOOD_TARGET.dart"
     PENNYWOOD_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/ios/iphonesimulator/Runner.app/Info.plist)"
+    printf 'Installing %s while retaining the simulator data.\n' "$PENNYWOOD_TARGET"
+    xcrun simctl install "$PENNYWOOD_SIMULATOR" "$PWD/build/ios/iphonesimulator/Runner.app"
+    printf 'Launching %s in a new process.\n' "$PENNYWOOD_TARGET"
+    PENNYWOOD_LAUNCH="$(xcrun simctl launch "$PENNYWOOD_SIMULATOR" "$PENNYWOOD_BUNDLE_ID" \
+      --enable-dart-profiling --disable-vm-service-publication --start-paused --enable-checked-mode --verify-entry-points)"
+    PENNYWOOD_PROCESS_ID="${PENNYWOOD_LAUNCH##*: }"
+    # Flutter's asynchronous live-log subscription can miss the startup VM URI.
+    # Read retained logs for this PID, retaining authentication and a bounded wait.
+    PENNYWOOD_SERVICE_URI="$(python3 scripts/ios_service_uri.py "$PENNYWOOD_SIMULATOR" "$PENNYWOOD_PROCESS_ID")"
+    printf 'Running %s assertions on %s.\n' "$PENNYWOOD_TARGET" "$PENNYWOOD_KIND"
+    "$PENNYWOOD_FLUTTER" drive --no-pub --debug --keep-app-running --no-uninstall-first -d "$PENNYWOOD_SIMULATOR" \
+      --use-existing-app="$PENNYWOOD_SERVICE_URI" --driver test_driver/integration_test.dart --target "integration_test/$PENNYWOOD_TARGET.dart"
+    # Keep storage; the companion must read the previous process's database.
     xcrun simctl terminate "$PENNYWOOD_SIMULATOR" "$PENNYWOOD_BUNDLE_ID"
+    printf 'Passed %s on %s.\n' "$PENNYWOOD_TARGET" "$PENNYWOOD_KIND"
   done
   cleanup
   PENNYWOOD_SIMULATOR=''
