@@ -132,7 +132,7 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await until(() => c.account.positions.length == 2);
   expect(c.account.wallet, 5000);
   expect(c.account.reserved, 2037);
-  await tester.pageBack();
+  await tap(find.byType(BackButton));
   await tester.pump(const Duration(milliseconds: 400));
   await key('open-lesson');
   await key('lesson-play');
@@ -146,7 +146,7 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await shot('dividend');
   expect(c.account.wallet, 5000);
   expect(c.account.marketReturn, 0);
-  await tester.pageBack();
+  await tap(find.byType(BackButton));
   await tester.pump(const Duration(milliseconds: 400));
   clock.advance(1);
   await c.resume();

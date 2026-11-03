@@ -115,7 +115,7 @@ void main() {
       await key('book-continue');
       await until(() => c.account.loans.length == 1);
       expect(c.account.loans.single.wishId, wish);
-      await tester.pageBack();
+      await tap(find.byType(BackButton));
       await tester.pump(const Duration(milliseconds: 400));
       await tap(find.text('我的零钱'));
       await c.unlock('719385');

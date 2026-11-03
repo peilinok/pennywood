@@ -64,7 +64,7 @@ void main() {
       }
 
       Future<void> back() async {
-        await tester.pageBack();
+        await tap(find.byType(BackButton));
         await tester.pump(const Duration(milliseconds: 400));
       }
 
