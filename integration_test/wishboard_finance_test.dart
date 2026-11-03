@@ -70,7 +70,7 @@ void main() {
 
       Future<void> close() async {
         if (find.byTooltip('Back').evaluate().isNotEmpty) await back();
-        if (find.text('待确认').evaluate().isNotEmpty) await key('parent-entry');
+        if (find.text('待办').evaluate().isNotEmpty) await key('parent-entry');
       }
 
       Future<void> visit(String place) async {
@@ -97,12 +97,12 @@ void main() {
         FocusManager.instance.primaryFocus?.unfocus();
         await key('unlock-parent');
         await until(() => c.parent != null);
-        await text('管理领取、预支和收益预算');
       }
 
       Future<void> advance30() async {
         final before = c.account.date;
         await parent();
+        await text('家庭');
         await text('示例前进 30 天');
         await until(() => c.account.date == Day.add(before, 30));
         await close();

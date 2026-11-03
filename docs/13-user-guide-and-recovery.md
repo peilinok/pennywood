@@ -6,7 +6,7 @@ The app's labels remain in Simplified Chinese. The English names below describe 
 
 1. Choose Create our family / Start from zero. Enter two child names and a 6-12 digit parent passcode. Real balances, budget, and rate start at zero; no default paid tasks or wishes exist.
 2. Create a gift wish or savings goal. Choose one primary wish and queue the rest.
-3. Unlock the parent area. In Family agreements, set family-wide standards/pay once for all children or agree on a temporary task. Agree first, perform real work afterward.
+3. Unlock the parent area. In Family, set shared standards/pay once for all children. In Child, agree on a temporary task for that child. Agree first, perform real work afterward.
 4. After finishing, the child opens Tasks and taps the agreed recurring task, or directly submits an accepted temporary task. Withdraw before checking if needed. Read specific feedback and resubmit after improvement; the wish home can point to one concrete reminder. Paused agreements retain existing instances, including prior-day pending work.
 5. The parent checks, then separately confirms actual delivery or reserved custody and pays. Only now are cash and wish progress credited.
 6. Children have independent tasks, wishes, and ledgers. Leaving parent space, switching child, or leaving the foreground relocks access and clears secret form input.
@@ -27,9 +27,9 @@ Tap the primary wish card to open its detail, or use Other wishes for the queue/
 
 ## Shared terms, investments, and classroom
 
-Family agreements apply to every child; submitted/accepted tasks retain their saved standards and pay. Temporary tasks, real task completions, budgets, wishes, consent, and balances remain child-specific. From Family agreements, open finance management: closing that nested dialog keeps the surrounding parent session unlocked. Profile changes, leaving parent space, and backgrounding still lock it.
+Family agreements apply to every child; submitted/accepted tasks retain their saved standards and pay. Temporary tasks, real task completions, budgets, wishes, consent, and balances remain child-specific. Parent destinations are Pending, Child, and Family. Pending opens each check/payment, withdrawal handover, or advance offer/funding directly. Offers waiting for child acceptance are labeled as waiting and excluded from actionable work. Child owns wishes/receipts, the full ledger, independent yield budget/consent, profile name, and one temporary-task creation entry. Family owns shared standards, product rates, backup, and credentials. Closing an internal page keeps the parent session unlocked. Profile changes, leaving parent space, and backgrounding still lock it.
 
-Set the 90-day, 365-day, and fixed-dividend annual rates independently under family product rates. Existing holdings retain the originally accepted rate; changed-and-reverted dividend terms require renewed acceptance. Budget/name edits only affect the selected child.
+Set the 90-day, 365-day, and fixed-dividend annual rates independently under family product rates. Existing holdings retain the originally accepted rate; changed-and-reverted dividend terms require renewed acceptance. Budget and name use separate forms and only affect the selected child. The single profile selector always identifies the active child.
 
 Parents may allow low/high-volatility teaching investments separately for each child. These use real pocket money and may lose principal. Before accepting a position, read its 30-day maximum loss/gain and the child's budget reservation. Indicative redemption values remain separate from cost-based holdings until realization. At maturity or early redemption, gains/losses enter cash and the ledger once. Disabling permission prevents new positions and leaves old promises intact. There is no external fund/Nasdaq trading or guaranteed upward return.
 
@@ -39,7 +39,7 @@ Upgrade to schema6 installs over the existing app. Shared future templates start
 
 ## Encrypted backup and moving devices
 
-Open Family agreements -> Backup, recovery, and parent passcode. Verify the local passcode again, choose a separate backup password of at least ten characters, and export a `.pennywood` file through the system picker. Archives contain neither parent passcode nor recovery code. Keep the password separately and retain multiple dated copies.
+Open Family -> Backup, recovery, and parent passcode. Verify the local passcode again, choose a separate backup password of at least ten characters, and export a `.pennywood` file through the system picker. Archives contain neither parent passcode nor recovery code. Keep the password separately and retain multiple dated copies.
 
 To restore, choose the archive, enter its password, review family/children/time/ledger count, and confirm. An existing family requires the current local credential and matching stable family identity. Save an encrypted pre-restore copy before transactional replacement. Recovery returns to that snapshot; later local changes are not merged. Wrong passwords, tampered ciphertext, and invalid accounting are rejected.
 

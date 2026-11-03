@@ -311,6 +311,7 @@ class _TownPanelState extends State<TownPanel> {
         'growth': '时光树 · 成长手账',
         'journal': '我的零钱口袋',
         'loans': '预支与主动还款',
+        'parent-loans': '预支记录',
         'parent': '家长空间',
         'lesson': '产品小课堂',
       }[id] ??
@@ -326,6 +327,10 @@ class _TownPanelState extends State<TownPanel> {
     'wish' => wish(),
     'growth' => growth(),
     'loans' => loans(),
+    'parent-loans' => [
+      for (final l in s.loans.where((l) => l.id == widget.recordId))
+        loanCard(l, parent: true),
+    ],
     'parent' => parent(),
     'lesson' => lesson(),
     _ => [],

@@ -75,7 +75,7 @@ void main() {
       await hideKeyboard();
       await key('unlock-parent');
       await until(() => c.parent != null);
-      await tap(find.text('家庭约定'));
+      await tap(find.text('家庭'));
       await key('configure-dishes');
       await input('action-field-0', '现实中洗净餐具并擦干水槽');
       await input('action-field-1', '32');
@@ -148,7 +148,7 @@ void main() {
       await hideKeyboard();
       await key('unlock-parent');
       await until(() => c.parent != null);
-      await tap(find.text('孩子与心愿'));
+      await tap(find.text('孩子'));
       await key('manage-main-wish');
       await key('receive-gift-$wish');
       for (final r in c.account.requests) {
@@ -216,7 +216,7 @@ void main() {
       await hideKeyboard();
       await key('unlock-parent');
       await until(() => c.parent != null);
-      await tap(find.text('家庭约定'));
+      await tap(find.text('家庭'));
       await key('family-data');
       await shot('05-backup-and-parent-lock');
       expect(tester.takeException(), isNull);
