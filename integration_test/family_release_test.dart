@@ -24,7 +24,7 @@ void main() {
       }
 
       Future<void> tap(Finder finder) async {
-        await until(() => finder.evaluate().isNotEmpty);
+        await until(() => finder.evaluate().length == 1);
         await tester.ensureVisible(finder);
         await tester.pump(const Duration(milliseconds: 300));
         await tester.tap(finder);
