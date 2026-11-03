@@ -5,7 +5,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pennywood/data/backup.dart';
 import 'package:pennywood/features/wish_home.dart';
-import 'package:pennywood/features/panels.dart';
 import 'family_release_support.dart';
 import 'experience_acceptance.dart';
 
@@ -105,9 +104,8 @@ void main() {
       await key('parent-entry');
       await shot('01-paid-accumulation');
 
-      await tap(find.text('我的零钱'));
-      await tap(find.text('预支与主动还款'));
-      await tap(find.text('写一份预支提议'));
+      await key('manage-main-wish');
+      await key('propose-advance-$wish');
       for (final entry in ['望远镜', '48', '3', '2026-12-01'].asMap().entries) {
         await input('book-field-${entry.key}', entry.value);
       }
@@ -117,7 +115,9 @@ void main() {
       await key('book-continue');
       await until(() => c.account.loans.length == 1);
       expect(c.account.loans.single.wishId, wish);
-      await key('close-panel');
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tap(find.text('我的零钱'));
       await c.unlock('719385');
       final loan = c.account.loans.single.id;
       await c.perform('offerLoan', [loan, 3, '2026-12-01', 600]);
@@ -126,13 +126,7 @@ void main() {
       c.lock();
       for (final amount in ['20', '12']) {
         final beforeCount = c.account.requests.length;
-        await tap(find.text('申请实际领取'));
-        await tap(
-          find.descendant(
-            of: find.byType(TownPanel),
-            matching: find.text('申请实际领取'),
-          ),
-        );
+        await key('request-withdrawal');
         await input('book-field-0', amount);
         await input('book-field-1', '望远镜自付 $amount 元');
         await hideKeyboard();
@@ -140,7 +134,6 @@ void main() {
         await key('book-continue');
         await until(() => c.account.requests.length == beforeCount + 1);
         expect(c.account.requests.last.wishId, wish);
-        await key('close-panel');
         await c.unlock('719385');
         await c.perform('payRequest', [c.account.requests.last.id]);
         c.lock();

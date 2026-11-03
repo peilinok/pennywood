@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:pennywood/features/wish_home.dart';
-import 'package:pennywood/features/panels.dart';
 import 'package:pennywood/domain/money.dart';
 import 'wishboard_support.dart';
 
@@ -64,24 +63,31 @@ void main() {
         await binding.takeScreenshot('$kind-wishboard-finance-$name');
       }
 
+      Future<void> back() async {
+        await tester.pageBack();
+        await tester.pump(const Duration(milliseconds: 400));
+      }
+
       Future<void> close() async {
-        await key('close-panel');
-        await tester.pump(const Duration(milliseconds: 300));
+        if (find.byTooltip('Back').evaluate().isNotEmpty) await back();
         if (find.text('待确认').evaluate().isNotEmpty) await key('parent-entry');
       }
 
       Future<void> visit(String place) async {
         await text('我的零钱');
-        await text(
-          {
-            'savings': '存入与分红',
-            'wish': '预支与主动还款',
-            'journal': '申请实际领取',
-            'growth': '成长投影',
-          }[place]!,
-        );
-        await until(
-          () => find.byKey(const Key('close-panel')).evaluate().isNotEmpty,
+        if (place == 'savings') await key('arrange-money');
+        if (place == 'wish') await text('全部预支记录');
+        if (place == 'journal') await key('request-withdrawal');
+        if (place == 'growth') {
+          await key('open-lesson');
+          await key('lesson-projection');
+        }
+      }
+
+      Future<void> holding(String product) async {
+        await text('我的零钱');
+        await key(
+          'holding-${c.account.active.singleWhere((p) => p.product == product).id}',
         );
       }
 
@@ -109,8 +115,9 @@ void main() {
         ('sprout', '10'),
       ]) {
         await key('deposit-$product');
-        await book([amount]);
-        await key('confirm-action');
+        await input('deposit-amount', amount);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await key('confirm-deposit');
         await until(
           () => !c.busy && c.account.active.any((p) => p.product == product),
         );
@@ -122,7 +129,7 @@ void main() {
       await advance30();
       expect(c.account.wallet, 4025);
       expect(c.account.bonusEarned, 25);
-      await visit('savings');
+      await holding('dividend');
       await tap(find.textContaining('下次：现金分红'));
       await key('confirm-action');
       await until(
@@ -142,21 +149,24 @@ void main() {
       await advance30();
       expect(c.account.wallet, 5032);
       expect(c.account.active.any((p) => p.product == 'sprout'), false);
-      await visit('savings');
+      await holding('annual');
       await screenshot('09-dividend');
       await tap(find.text('提前取回').first);
       await key('confirm-action');
       await until(() => !c.account.active.any((p) => p.product == 'annual'));
       expect(c.account.wallet, 10033);
-      await text('产品小课堂');
-      await until(() => find.text('分红时，钱没有凭空变多').evaluate().isNotEmpty);
+      await close();
+      await text('我的零钱');
+      await key('open-lesson');
+      await until(() => find.text('阿栗的财富实验室').evaluate().isNotEmpty);
       await close();
 
-      await visit('wish');
-      await text('写一份预支提议');
+      await text('我的心愿');
+      await key('manage-main-wish');
+      await key('propose-advance-${c.account.mainWish!.id}');
       await book(['望远镜配件', '60', '3', Day.add(c.account.date, 30)]);
       await until(() => c.account.loans.isNotEmpty);
-      await close();
+      await back();
       await parent();
       await text('提出最终条件');
       await book(['3', c.account.loans.single.first, '6']);
@@ -198,12 +208,6 @@ void main() {
       await close();
 
       await visit('journal');
-      await tap(
-        find.descendant(
-          of: find.byType(TownPanel),
-          matching: find.text('申请实际领取'),
-        ),
-      );
       await book(['10', '买绘本']);
       await until(() => c.account.pendingCash == 1000);
       final assetsBeforeDelivery = c.account.assets;

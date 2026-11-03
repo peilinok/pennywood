@@ -15,6 +15,10 @@ Demo families contain synthetic funds/tasks and require a separate passcode. The
 
 ## Finance, advances, and gifts
 
+Money emphasizes available pocket money. Nonzero held principal, frozen withdrawals, and planned debt stay visible separately; expand Account details for totals and zero balances. Tap a holding for its original terms and early redemption, including when new market permission has been disabled. Tap an advance for its schedule, next amount/date, acceptance, or active repayment. Historical records remain available.
+
+Request actual withdrawal opens its form directly. Saving freezes cash without reducing assets; actual parent delivery reduces assets. Arrange money groups all five plans into fixed agreements and variable returns. Its amount page updates the expected yield or maximum loss/gain and reservation; one explicit confirmation persists the deposit. Invalid amounts retain the form. The ledger defaults to five recent financial entries and can show all entries or a category, including nonfinancial history.
+
 Deposits move cash to holdings. Parents must agree to yields and fund the budget; expected yield is not present accumulation. Advances activate only after a parent offers final terms, the child accepts, and actual funding occurs. Funds do not enter the child's wallet. Monthly payments are actively chosen after due dates, with no automatic debit or penalty.
 
 A savings milestone does not debit money. A parent verifies gift receipt and links delivered withdrawals and actually funded principal totaling the purchase cost. Do not debit again. Debt remains separate.
@@ -29,7 +33,7 @@ Set the 90-day, 365-day, and fixed-dividend annual rates independently under fam
 
 Parents may allow low/high-volatility teaching investments separately for each child. These use real pocket money and may lose principal. Before accepting a position, read its 30-day maximum loss/gain and the child's budget reservation. Indicative redemption values remain separate from cost-based holdings until realization. At maturity or early redemption, gains/losses enter cash and the ledger once. Disabling permission prevents new positions and leaves old promises intact. There is no external fund/Nasdaq trading or guaranteed upward return.
 
-Open Product classroom from savings to play/pause a five-year curve journey, inspect individual months, compare retained/withdrawn yields, and move dividends to a pocket or reinvest them. Lessons never change cash or family time; reduced motion provides direct results. A simulated new journey only changes classroom examples.
+Open Product classroom from Money to play/pause a five-year curve journey, inspect individual months, compare retained/withdrawn yields, and move dividends to a pocket or reinvest them. Lessons never change cash or family time; reduced motion provides direct results. A simulated new journey only changes classroom examples. My hypothesis compares reinvestment and withdrawn yields over 1-20 years, optionally adding 52 weeks of planned labor at each year end. Editing those amounts changes only the lesson. Actual returns stay in the Money ledger.
 
 Upgrade to schema6 installs over the existing app. Shared future templates start from the previously active child; all old task and holding promises stay intact. Export/verify a backup before upgrading; use forward repair rather than installing an older binary on schema6 data.
 

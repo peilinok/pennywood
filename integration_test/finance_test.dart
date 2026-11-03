@@ -113,8 +113,9 @@ void main() {
         ('sprout', '10'),
       ]) {
         await key('deposit-$product');
-        await book([amount]);
-        await key('confirm-action');
+        await input('deposit-amount', amount);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await key('confirm-deposit');
         await until(
           () => !c.busy && c.account.active.any((p) => p.product == product),
         );
@@ -153,7 +154,7 @@ void main() {
       await until(() => !c.account.active.any((p) => p.product == 'annual'));
       expect(c.account.wallet, 10033);
       await text('产品小课堂');
-      await until(() => find.text('分红时，钱没有凭空变多').evaluate().isNotEmpty);
+      await until(() => find.text('阿栗的财富实验室').evaluate().isNotEmpty);
       await close();
 
       await visit('wish');

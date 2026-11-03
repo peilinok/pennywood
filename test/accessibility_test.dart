@@ -137,12 +137,12 @@ void main() {
     (tester) async {
       await check(tester, const Size(1194, 834), () async {
         await activate(tester, find.text('我的零钱'));
-        final entry = find.text('存入与分红');
+        final entry = find.byKey(const Key('arrange-money'));
         await tester.ensureVisible(entry);
         await tester.pumpAndSettle();
         expect(tester.getSemantics(entry), containsSemantics(isButton: true));
         await activate(tester, entry);
-        expect(find.textContaining('储蓄小屋 · 小满'), findsOneWidget);
+        expect(find.textContaining('安排零钱 · 小满'), findsOneWidget);
         expect(c.account.wallet, 0);
       });
     },
@@ -206,6 +206,7 @@ void main() {
           tester.getSemantics(find.text('我的每一分，都有来处')),
           containsSemantics(isHeader: true),
         );
+        await activate(tester, find.text('账户明细'));
         for (final label in ['可用零钱', '持有本金', '待领取', '计划待还']) {
           final node = tester.getSemantics(find.text(label));
           expect(node.label, '$label 0.00 元');

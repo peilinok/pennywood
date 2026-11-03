@@ -9,6 +9,8 @@ import '../app/screens.dart' show TownHome, tell, userMessage;
 import '../domain/engine.dart';
 import '../domain/model.dart';
 import '../domain/money.dart';
+import '../domain/market.dart';
+import 'investment_lab.dart';
 import 'panels.dart';
 import 'family_settings.dart';
 
@@ -25,6 +27,8 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   PaperColors get p => PaperColors.of(context);
   bool parentMode = false, completedOnly = false;
   int page = 0;
+  String ledgerFilter = 'money';
+  bool fullLedger = false;
   final scrolls = <String, ScrollController>{};
   String get pageKey => '${c.child}-$parentMode-$page';
   ScrollController get scroll =>
@@ -131,6 +135,28 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     );
     if (mounted) setState(() {});
   }
+
+  Future<void> finance(String name, {String? recordId}) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => TownPanel(c, name, asPage: true, recordId: recordId),
+        ),
+      );
+
+  Future<void> learn() => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => DetailPage(
+        title: const Text('产品小课堂'),
+        content: SingleChildScrollView(
+          child: InvestmentLab(
+            projectionPrincipal: math.max(0, s.conservative),
+            projectionRateBps: s.rateFor('annual'),
+            weeklyPlan: s.weeklyPlan,
+          ),
+        ),
+      ),
+    ),
+  );
 
   Future<void> newWish({Wish? wish}) => Navigator.of(context).push<void>(
     MaterialPageRoute(builder: (_) => WishEditor(c, wish: wish, asPage: true)),
@@ -1484,98 +1510,217 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     },
   );
 
-  List<Widget> moneyPage() => [
-    heading('我的每一分，都有来处'),
-    stats(),
-    const SizedBox(height: 12),
-    small('保守积累 = 零钱 + 持有 + 待领取 − 计划待还（含未来利息）。预计收益与借款不算新收入。'),
-    heading('慢慢安排自己的零钱'),
-    Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        actionTile(
-          Icons.eco_outlined,
-          '存入与分红',
-          '已有本金的下一站',
-          () => panel('savings'),
-        ),
-        actionTile(
-          Icons.handshake_outlined,
-          '预支与主动还款',
-          '看清约定，按月主动还',
-          () => panel('loans'),
-        ),
-        actionTile(
-          Icons.payments_outlined,
-          '申请实际领取',
-          '家长交付后才记为已领取',
-          () => panel('journal'),
-        ),
-        actionTile(
-          Icons.show_chart,
-          '成长投影',
-          '真实收获与未来假设分开',
-          () => panel('growth'),
-        ),
-      ],
-    ),
-    heading('收获手账'),
-    if (s.ledger
-        .where(
-          (l) => [
-            'income',
-            'yield',
-            'market-return',
-            'repay',
-            'withdraw',
-            'invest',
-          ].contains(l.kind),
-        )
-        .isEmpty)
-      card(small('家长实际兑现的第一份报酬，会保存在这里。')),
-    for (final l in s.ledger.reversed.where(
-      (l) => [
-        'income',
-        'yield',
-        'market-return',
-        'repay',
-        'withdraw',
-        'invest',
-      ].contains(l.kind),
-    ))
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: card(
-          Row(
-            children: [
-              Icon(
-                l.kind == 'income'
-                    ? Icons.task_alt
-                    : l.kind == 'yield'
-                    ? Icons.eco_outlined
-                    : Icons.menu_book_outlined,
-                color: l.kind == 'market-return' && l.amount < 0
-                    ? p.danger
-                    : p.green,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [Text(l.title), small(l.date)],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '¥${Money.format(l.amount)}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ],
+  Widget balance(String label, int value, {bool primary = false}) => Semantics(
+    excludeSemantics: true,
+    label: '$label ${Money.format(value)} 元',
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          small(label),
+          Text(
+            '¥${Money.format(value)}',
+            key: primary ? const Key('wallet-amount') : null,
+            style: TextStyle(
+              fontSize: primary ? 38 : 23,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
+        ],
+      ),
+    ),
+  );
+
+  List<Widget> moneyPage() {
+    final kinds = <String, String>{
+      'money': '资金流水',
+      'income': '劳动报酬',
+      'yield': '固定收益',
+      'market-return': '投资涨跌',
+      'invest': '存入取回',
+      'request': '领取申请',
+      'withdraw': '实际领取',
+      'repay': '还款',
+      'loan-funded': '家长垫付',
+      'all': '全部记录',
+    };
+    final entries = s.ledger.reversed
+        .where(
+          (l) =>
+              ledgerFilter == 'all' ||
+              (ledgerFilter == 'money'
+                  ? kinds.containsKey(l.kind)
+                  : l.kind == ledgerFilter),
+        )
+        .toList();
+    return [
+      heading('我的每一分，都有来处'),
+      card(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            balance('可用零钱', s.wallet, primary: true),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton(
+                  key: const Key('request-withdrawal'),
+                  onPressed: c.busy
+                      ? null
+                      : () => requestWithdrawal(context, c),
+                  child: const Text('申请实际领取'),
+                ),
+                OutlinedButton(
+                  key: const Key('arrange-money'),
+                  onPressed: () => finance('savings'),
+                  child: const Text('安排零钱'),
+                ),
+              ],
+            ),
+            if (s.holding > 0) balance('持有本金', s.holding),
+            if (s.pendingCash > 0) balance('待领取', s.pendingCash),
+            if (s.debt > 0) balance('计划待还', s.debt),
+            ExpansionTile(
+              key: PageStorageKey('account-${c.child}'),
+              tilePadding: EdgeInsets.zero,
+              title: const Text('账户明细'),
+              children: [
+                balance('账户资产', s.assets),
+                balance('保守积累', s.conservative),
+                if (s.holding == 0) balance('持有本金', 0),
+                if (s.pendingCash == 0) balance('待领取', 0),
+                if (s.debt == 0) balance('计划待还', 0),
+                balance('已实际领取', s.withdrawn),
+                balance('已兑现劳动', s.laborTotal),
+                balance('已结算固定收益', s.bonusEarned),
+                balance('波动投资累计涨跌', s.marketReturn),
+                balance('已偿还', s.repaidTotal),
+                small(
+                  '保守积累 = 零钱 + 持有本金 + 待领取 − 计划待还（含未来利息）。参考涨跌、预计收益与借款不算新收入。',
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-  ];
+      if (s.active.isNotEmpty) heading('我的持有'),
+      for (final position in s.active)
+        card(
+          ListTile(
+            key: Key('holding-${position.id}'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(Product.all[position.product]!.name),
+            subtitle: Text(
+              '本金 ¥${Money.format(position.principal)} · ${position.end} 到期\n${Product.all[position.product]!.market ? '参考涨跌 ¥${Money.format(TeachingMarket.profit(position, s.date))}（未结算）' : '本期预计收益 ¥${Money.format(position.expected)}（未入账）'}',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => finance('holding', recordId: position.id),
+          ),
+        ),
+      if (s.positions.any((p) => p.status != 'active'))
+        ExpansionTile(
+          key: PageStorageKey('settled-${c.child}'),
+          title: const Text('已结算的持有'),
+          children: [
+            for (final position in s.positions.where(
+              (p) => p.status != 'active',
+            ))
+              ListTile(
+                title: Text(Product.all[position.product]!.name),
+                subtitle: Text(
+                  '${position.start} · 本金 ¥${Money.format(position.principal)}',
+                ),
+                onTap: () => finance('holding', recordId: position.id),
+              ),
+          ],
+        ),
+      for (final r in s.requests.where((r) => r.status == 'pending'))
+        card(Text('待家长实际交付 ¥${Money.format(r.amount)} · ${r.purpose}')),
+      if (s.loans.isNotEmpty) heading('预支与主动还款'),
+      for (final l in s.loans.where(
+        (l) => !['paid', 'cancelled', 'rejected'].contains(l.status),
+      ))
+        card(
+          ListTile(
+            key: Key('loan-${l.id}'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.item),
+            subtitle: Text(
+              l.status == 'active'
+                  ? '计划待还 ¥${Money.format(l.balance)}\n${nextPayment(l)}'
+                  : l.status == 'offered'
+                  ? '家长已提出条件，等你阅读并决定'
+                  : l.status == 'approved'
+                  ? '等待家长实际垫付'
+                  : '等待家长提出条件',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => finance('loans', recordId: l.id),
+          ),
+        ),
+      if (s.loans.isNotEmpty)
+        TextButton(
+          onPressed: () => finance('loans'),
+          child: const Text('全部预支记录'),
+        ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          key: const Key('open-lesson'),
+          onPressed: learn,
+          icon: const Icon(Icons.auto_stories_outlined),
+          label: const Text('产品小课堂'),
+        ),
+      ),
+      heading('收获手账'),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final item in kinds.entries)
+            ChoiceChip(
+              key: Key('ledger-${item.key}'),
+              label: Text(item.value),
+              selected: ledgerFilter == item.key,
+              onSelected: (_) => setState(() {
+                ledgerFilter = item.key;
+                fullLedger = false;
+              }),
+            ),
+        ],
+      ),
+      if (entries.isEmpty) card(small('这里还没有记录。实际兑现后，收获会保存在这里。')),
+      for (final l in fullLedger ? entries : entries.take(5))
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.title),
+          subtitle: Text('${l.date} · ${l.reference}'),
+          trailing: Text(
+            '¥${Money.format(l.amount)}',
+            style: TextStyle(
+              color: l.kind == 'market-return' && l.amount < 0
+                  ? p.danger
+                  : p.ink,
+            ),
+          ),
+        ),
+      if (entries.length > 5)
+        TextButton(
+          onPressed: () => setState(() => fullLedger = !fullLedger),
+          child: Text(fullLedger ? '只看最近五笔' : '查看全部 ${entries.length} 笔'),
+        ),
+    ];
+  }
+
+  String nextPayment(Loan loan) {
+    final next = loan.schedule.where((p) => p.balance > 0).firstOrNull;
+    return next == null
+        ? '本期已还清'
+        : '下一期 ${next.due} · ¥${Money.format(next.balance)}';
+  }
 
   List<Widget> locked() => [
     const SizedBox(height: 16),

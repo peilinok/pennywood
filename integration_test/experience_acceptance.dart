@@ -124,15 +124,16 @@ Future<void> verifyExperience(WidgetTester tester) async {
   }
   await key('parent-entry');
   await tap(find.text('我的零钱'));
-  await tap(find.text('存入与分红'));
+  await key('arrange-money');
   await key('deposit-growth');
-  await input('book-field-0', '100');
+  await input('deposit-amount', '100');
   await hideKeyboard();
-  await key('book-continue');
-  await key('confirm-action');
+  await key('confirm-deposit');
   await until(() => c.account.positions.length == 2);
   expect(c.account.wallet, 5000);
   expect(c.account.reserved, 2037);
+  await tester.pageBack();
+  await tester.pump(const Duration(milliseconds: 400));
   await key('open-lesson');
   await key('lesson-play');
   await tester.pump(const Duration(seconds: 2));
@@ -145,7 +146,8 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await shot('dividend');
   expect(c.account.wallet, 5000);
   expect(c.account.marketReturn, 0);
-  await key('close-panel');
+  await tester.pageBack();
+  await tester.pump(const Duration(milliseconds: 400));
   clock.advance(1);
   await c.resume();
   await c.perform('redeem', [

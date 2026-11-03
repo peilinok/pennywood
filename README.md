@@ -1,6 +1,6 @@
 # Pennywood
 
-The 0.5.0+12 simplification candidate is being delivered in bounded tasks under [the implementation plan](docs/27-interface-simplification.md). S1 focuses the wish home and task actions; S2 gives wishes sequential list/detail/edit/receipt pages and explicitly linked advance proposals. Retain schema6 and all payment/permission rules. Task status and exact-candidate checks belong to that plan and each PR; physical usability remains separate acceptance.
+The 0.5.0+12 simplification candidate is being delivered in bounded tasks under [the implementation plan](docs/27-interface-simplification.md). S1 focuses the wish home and task actions; S2 gives wishes sequential list/detail/edit/receipt pages and explicitly linked advance proposals; S3 consolidates money, direct withdrawals, grouped plans, and read-only learning. Retain schema6 and all payment/permission rules. Task status and exact-candidate checks belong to that plan and each PR; physical usability remains separate acceptance.
 
 <img src="assets/svg/mascot.svg" width="80" alt="Pennywood squirrel mascot" />
 
