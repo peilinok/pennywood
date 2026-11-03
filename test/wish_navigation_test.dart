@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pennywood/app/controller.dart';
 import 'package:pennywood/app/paper_theme.dart';
@@ -35,7 +36,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
-      MaterialApp(theme: paperTheme(Brightness.light), home: WishHome(c)),
+      MaterialApp(
+        locale: const Locale('zh', 'CN'),
+        supportedLocales: const [Locale('zh', 'CN')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        theme: paperTheme(Brightness.light),
+        home: WishHome(c),
+      ),
     );
     await tester.pumpAndSettle();
     addTearDown(() => tester.pumpWidget(const SizedBox()));
@@ -72,7 +79,7 @@ void main() {
       await tap(tester, find.byKey(const Key('action-save')));
       expect(find.byKey(Key('edit-wish-$id')), findsOneWidget);
       expect(c.account.mainWish!.name, '看月亮');
-      await tester.pageBack();
+      await tap(tester, find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.text('其他心愿'), findsOneWidget);
       expect(c.account.wallet, 0);

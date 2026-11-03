@@ -170,7 +170,7 @@ void main() {
       await until(() => find.byType(GiftReceipt).evaluate().isEmpty);
       await until(() => find.byType(BackButton).evaluate().length == 1);
       await shot('04-receipt-and-debt');
-      await tester.pageBack();
+      await tap(find.byType(BackButton));
       await tester.pump(const Duration(milliseconds: 400));
 
       final directory = await getApplicationSupportDirectory();
