@@ -97,6 +97,7 @@ void main() {
       await until(() => c.account.quickTasks.first.enabled);
       await shot('02-agreements');
       await key('parent-entry');
+      await tap(find.text('我的任务'));
       await key('quick-dishes');
       await until(() => c.account.tasks.isNotEmpty);
       final id = c.account.tasks.single.id;
@@ -119,6 +120,7 @@ void main() {
       await key('action-save');
       await until(() => c.account.tasks.single.status == 'needsWork');
       await key('parent-entry');
+      await tap(find.text('我的任务'));
       await key('quick-dishes');
       await shot('04-feedback');
       await key('submit-$id');

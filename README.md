@@ -1,5 +1,7 @@
 # Pennywood
 
+The 0.5.0+12 simplification candidate is being delivered in bounded tasks under [the implementation plan](docs/27-interface-simplification.md). S1 focuses the wish home and task actions while retaining schema6 and all payment/permission rules. Later task status and exact-candidate checks belong to that plan and each PR; physical usability remains separate acceptance.
+
 <img src="assets/svg/mascot.svg" width="80" alt="Pennywood squirrel mascot" />
 
 An iPhone / iPad financial-learning app for children aged 7-10 and their parents. Children work toward wishes through agreed real-world work or proactive learning. A parent first checks the work, then confirms actual payment; only then do pocket money and wish progress change.

@@ -84,6 +84,7 @@ void main() {
       await key('action-save');
       await until(() => c.account.quickTasks.first.enabled);
       await key('parent-entry');
+      await tap(find.text('我的任务'));
       await key('quick-dishes');
       await until(() => c.account.tasks.isNotEmpty);
       final task = c.account.tasks.single.id;
