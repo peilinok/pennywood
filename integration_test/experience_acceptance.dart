@@ -60,7 +60,7 @@ Future<void> verifyExperience(WidgetTester tester) async {
   }
 
   Future<void> tap(Finder f) async {
-    await until(() => f.evaluate().isNotEmpty);
+    await until(() => f.evaluate().length == 1);
     await tester.ensureVisible(f);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(f);
@@ -132,6 +132,9 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await until(() => c.account.positions.length == 2);
   expect(c.account.wallet, 5000);
   expect(c.account.reserved, 2037);
+  await until(
+    () => find.byKey(const Key('confirm-deposit')).evaluate().isEmpty,
+  );
   await tap(find.byType(BackButton));
   await tester.pump(const Duration(milliseconds: 400));
   await key('open-lesson');
