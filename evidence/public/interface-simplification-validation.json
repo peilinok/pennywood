@@ -1,7 +1,7 @@
 {
   "version": "0.5.0+12",
   "date": "2026-11-04",
-  "source_reference": "S5 pull request head; its exact SHA and required CI results are recorded on that PR",
+  "source_reference": "https://github.com/peilinok/pennywood/pull/7; later documentation-only commits retain the same app/test sources, and required CI records each exact PR head",
   "scope": "S1-S5 wish-journal navigation and interface simplification under ADR 0003",
   "baseline": {
     "source_commit": "60b024798ad3c007507024db0181b9379c0fc901",
@@ -66,5 +66,6 @@
     "iPadOS 26 windowing",
     "Supplemental legacy flow/restart and internal-scene native targets were adapted but not run in this round"
   ],
-  "delivery_boundary": "Reviewable PRs only; only prerequisite PR #2 was authorized and merged. No new physical installation, release tag, TestFlight or App Store distribution. CloudKit and production sync remain unimplemented."
+  "delivery_boundary": "Reviewable PRs only; only prerequisite PR #2 was authorized and merged. No new physical installation, release tag, TestFlight or App Store distribution. CloudKit and production sync remain unimplemented.",
+  "source_commit": "b2c627e9621e2083fa569ec995f5af1f955c5b2e"
 }
