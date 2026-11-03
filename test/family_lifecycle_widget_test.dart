@@ -49,7 +49,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: paperTheme(Brightness.light),
-          home: Scaffold(body: TownPanel(c, 'loans')),
+          home: FinancePage(c, 'loans'),
         ),
       );
       await tester.pumpAndSettle();
@@ -205,10 +205,7 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) => TextButton(
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => TownPanel(c, 'journal'),
-                  ),
+                  onPressed: () => requestWithdrawal(context, c),
                   child: const Text('打开零钱'),
                 ),
               ),
@@ -216,9 +213,6 @@ void main() {
           ),
         );
         await tester.tap(find.text('打开零钱'));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('申请实际领取'));
-        await tester.tap(find.text('申请实际领取'));
         await tester.pumpAndSettle();
         final wish = c.account.wishes.single.id;
         await tester.enterText(find.byKey(const Key('book-field-0')), '30');

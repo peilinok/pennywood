@@ -1,0 +1,70 @@
+{
+  "version": "0.5.0+12",
+  "date": "2026-11-04",
+  "source_reference": "S5 pull request head; its exact SHA and required CI results are recorded on that PR",
+  "scope": "S1-S5 wish-journal navigation and interface simplification under ADR 0003",
+  "baseline": {
+    "source_commit": "60b024798ad3c007507024db0181b9379c0fc901",
+    "host_tests": 118,
+    "reference_accounting_cases": 26,
+    "common_checks": "passed"
+  },
+  "changes": [
+    "Focused wishes, one complete task area, and contextual feedback",
+    "Sequential wish pages and gift-linked advance proposals",
+    "Direct withdrawal, distinct money components, grouped plans, one deposit confirmation, one ledger and classroom",
+    "Parent Pending/Child/Family responsibilities and independent child settings",
+    "Production town retirement, real-family daily entry, labeled parent entry and system appearance under More"
+  ],
+  "host": {
+    "format_and_fatal_analysis": "passed",
+    "host_tests": 131,
+    "reference_accounting_cases": 26,
+    "tooling_and_boundaries": "passed",
+    "reference_rebuilds": "passed",
+    "locks": "unchanged"
+  },
+  "local_ios_simulator": {
+    "toolchain": "Flutter 3.35.7, Xcode 16.1, iOS 18.1",
+    "source_scope": "Full local run passed before an additional test-only deposit-route wait; the final exact head is verified separately in hosted CI",
+    "production_entry_build": "passed",
+    "iphone_three_journeys": "passed",
+    "iphone_three_independent_restart_cases": "passed",
+    "ipad_three_journeys": "passed",
+    "ipad_three_independent_restart_cases": "passed",
+    "coverage": "Task checking/payment, combined gift payments and debt, encrypted restore, schema5 upgrade/snapshot, shared terms/rates, parent sessions, realized investment loss, lesson playback, deposits, cash/reinvested dividends, installment/payoff, withdrawal, hypothetical projection, real/demo isolation and replay idempotency",
+    "finance_restart_anchors_cents": {
+      "available_cash": 3003,
+      "repaid": 6030,
+      "withdrawn": 1000,
+      "debt": 0,
+      "waived_future_interest": 30,
+      "reinvested_principal": 10075,
+      "separate_real_child_cash": 800,
+      "second_demo_child_cash": 10000
+    },
+    "selected_screens": "iPhone wish home, child settings, grouped products and hypothetical curve; iPad wish home and compound-growth lesson inspected. Raw images remain local."
+  },
+  "regressions": "New behavior cases failed before implementation. Native checks exposed route-transition waits, fixture initialization and saved-demo-clock errors; the financial assertions and date guards were retained. Controller disposal now waits for route removal.",
+  "data_and_privacy": {
+    "database_schema": 6,
+    "archive_readers": [
+      4,
+      5,
+      6
+    ],
+    "domain_service_schema_credentials_and_locks": "unchanged from baseline",
+    "fixtures": "Synthetic files and isolated credentials on disposable simulators",
+    "recovery": "Forward UI repair; no conversion, balance reset, scene deletion or production credential clearing",
+    "publication_and_secret_checks": "Final staged/history and default-rule gitleaks results are recorded on the S5 PR",
+    "publication_boundary": "No raw logs/screenshots, ledgers, backups, device identifiers, signing data or private archives"
+  },
+  "ci": "Each bounded PR records Repository checks, iPhone, iPad and aggregate iOS simulator results for its exact head; later merges require fresh applicable checks",
+  "remaining_acceptance": [
+    "Current-candidate physical devices and full system orientations/windows",
+    "Five real-child usability scenarios and human VoiceOver",
+    "iPadOS 26 windowing",
+    "Supplemental legacy flow/restart and internal-scene native targets were adapted but not run in this round"
+  ],
+  "delivery_boundary": "Reviewable PRs only; only prerequisite PR #2 was authorized and merged. No new physical installation, release tag, TestFlight or App Store distribution. CloudKit and production sync remain unimplemented."
+}

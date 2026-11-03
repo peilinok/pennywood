@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-final paperThemeMode = ValueNotifier<ThemeMode>(ThemeMode.light);
+final paperThemeMode = ValueNotifier<ThemeMode>(ThemeMode.system);
 
 // Share semantic colors with design system 0.3; illustrations retain their asset colors.
 class PaperColors {

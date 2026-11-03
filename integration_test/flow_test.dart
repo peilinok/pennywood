@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:pennywood/main.dart' as app;
+import 'package:pennywood/features/wish_home.dart';
+import 'wishboard_support.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -9,7 +10,7 @@ void main() {
   testWidgets('Native iPhone / iPad labor payment and child isolation', (
     tester,
   ) async {
-    await app.main();
+    await startWishboard(reset: true, scenario: 'legacy-flow');
     Future<void> waitFor(Finder finder, {int attempts = 100}) async {
       for (var i = 0; i < attempts; i++) {
         await tester.pump(const Duration(milliseconds: 100));
@@ -54,46 +55,59 @@ void main() {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 400));
     await tapKey('finish-setup');
-    await waitFor(find.byKey(const Key('tasks-entry')));
-    await tester.pump(const Duration(seconds: 2));
-    expect(find.text('零钱 ¥0.00'), findsOneWidget);
-    await screenshot('01-zero-town');
-    await tapKey('tasks-entry');
-    await waitFor(find.byKey(const Key('accept-books')));
-    await tester.pump(const Duration(milliseconds: 700));
-    await screenshot('02-tasks');
-    await tapKey('accept-books');
-    await waitFor(find.byKey(const Key('submit-books')));
-    await tapKey('submit-books');
-    await tapKey('confirm-action');
-    await tapKey('close-panel');
+    await waitFor(find.byType(WishHome));
+    final c = tester.widget<WishHome>(find.byType(WishHome)).controller;
+    expect(c.account.wallet, 0);
+    await screenshot('01-zero-journal');
     await tapKey('parent-entry');
     await input('parent-pin', '719385');
     await tapKey('unlock-parent');
-    await waitFor(find.byKey(const Key('approve-books')));
-    await tapKey('approve-books');
-    await waitFor(find.byKey(const Key('pay-books')));
-    await tester.pump(const Duration(milliseconds: 700));
+    await waitFor(find.text('孩子'));
+    await tester.tap(find.text('孩子'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tapKey('add-task');
+    await input('action-field-0', '整理图书');
+    await input('action-field-1', '图书分类摆好，和家长一起检查');
+    await input('action-field-2', '8');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tapKey('action-save');
+    await waitFor(find.byKey(const Key('add-task')));
+    final task = c.account.tasks.single.id;
+    await tapKey('parent-entry');
+    await tester.tap(find.text('我的任务'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await screenshot('02-tasks');
+    await tapKey('accept-$task');
+    await tapKey('submit-$task');
+    expect(c.account.wallet, 0);
+    await tapKey('parent-entry');
+    await input('parent-pin', '719385');
+    await tapKey('unlock-parent');
+    await tapKey('review-$task');
+    await tapKey('approve-$task');
     await screenshot('03-parent-reviewed');
-    await tapKey('pay-books');
-    await tapKey('confirm-action');
-    await tester.pump(const Duration(seconds: 1));
-    await tapKey('close-panel');
-    await waitFor(find.text('零钱 ¥8.00'));
-    await tester.pump(const Duration(seconds: 3));
-    await screenshot('04-paid-town');
+    expect(c.account.wallet, 0);
+    await tapKey('payment-delivered');
+    await tapKey('pay-$task');
+    await waitFor(find.text('已经兑现并保存，孩子的心愿进度已更新。'));
+    await tester.tap(find.text('返回'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tapKey('parent-entry');
+    expect(c.account.wallet, 800);
+    await screenshot('04-paid-journal');
     await tapKey('profiles');
     await tapKey('switch-second');
-    await waitFor(find.text('小禾的小镇  ›'));
-    expect(find.text('零钱 ¥0.00'), findsOneWidget);
+    await waitFor(find.text('小禾的心愿手账'));
+    expect(c.account.wallet, 0);
     await screenshot('05-second-child');
     await tapKey('profiles');
     await tapKey('switch-first');
-    await waitFor(find.text('零钱 ¥8.00'));
-    await tapKey('wallet');
-    await waitFor(find.text('可以安排的零钱 ¥8.00'));
+    await waitFor(find.text('小满的心愿手账'));
+    expect(c.account.wallet, 800);
+    await tester.tap(find.text('我的零钱'));
+    await waitFor(find.byKey(const Key('wallet-amount')));
+    expect(find.text('¥8.00'), findsOneWidget);
     await screenshot('06-ledger');
-    await tapKey('close-panel');
     expect(tester.takeException(), isNull);
   });
 }

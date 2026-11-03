@@ -17,8 +17,6 @@ void main() {
       fail('Timed out waiting for recovery');
     }
 
-    await until(() => find.text('回到我们的家庭').evaluate().isNotEmpty);
-    await tester.tap(find.text('回到我们的家庭'));
     await until(() => find.byType(WishHome).evaluate().isNotEmpty);
     final c = tester.widget<WishHome>(find.byType(WishHome)).controller;
     expect(c.account.wallet, 200);

@@ -2,6 +2,10 @@
 
 The app's labels remain in Simplified Chinese. The English names below describe their meaning.
 
+## Daily entry
+
+An existing real family opens directly to its selected child, with the parent area locked. More -> Return to family entry stays there for that visit and lets you explicitly choose a demo or recovery. Demos are never selected automatically. More -> Appearance offers Follow system (the default), Light and Dark without changing money or permissions. The journal is the production interface; the former standalone walk is retired.
+
 ## First day
 
 1. Choose Create our family / Start from zero. Enter two child names and a 6-12 digit parent passcode. Real balances, budget, and rate start at zero; no default paid tasks or wishes exist.

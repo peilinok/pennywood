@@ -1,6 +1,6 @@
 # Pennywood Design System
 
-Wish journal 0.3, 2026-11-01. iPhone / iPad. Native Flutter uses these semantic colors and six-page structure. See [native scope](../../docs/10-native-validation.md).
+Wish journal 0.5 candidate, 2026-11-03. iPhone / iPad. Native Flutter uses these semantic colors and six-page structure. See [native scope](../../docs/10-native-validation.md).
 
 ## Product and interaction
 
@@ -89,3 +89,9 @@ Targeted `color`, `organic natural warm`, and `craft handmade` searches returned
 ## Investment learning interactions
 
 The native product classroom follows the existing paper/chestnut/green palette and squirrel assets. Use a solid labeled curve and a dotted labeled curve, inspectable values, a named time slider with step buttons, finite playback with pause/resume, and direct results for reduced motion. The compounding tree grows by scale; dividend allocation uses a short state transition. No game animation, curve replay, or classroom scenario changes accounting state or real dates. Keep the classroom's unbounded hypothetical journeys distinct from real 30-day investment boundaries. Family product settings are shared; budgets and permission remain visibly child-specific.
+
+## Simplified daily navigation
+
+Keep three child destinations and three parent destinations under ADR 0003. The whole primary-wish card opens detail; keep its money semantics independently readable. Use sequential pages for wishes and finance forms, one direct withdrawal entry, and one interactive classroom including hypothetical projections. Nonzero frozen cash/debt remain visible. The parent Pending/Child/Family split separates actionable work, child-specific settings and shared terms.
+
+Retain squirrel, telescope, tree growth and dividend motion within real tasks and lessons. The standalone production walk and duplicate town business panels are retired; assets, scene data and internal tests remain. Default to system appearance; place system/light/dark choices under More. Label the parent entry with text, remove routine saved-state badges, and retain meaningful saving/failure feedback. Avoid permanent introductions ahead of operational content. Returning real families enter the selected child's journal; explicit home return and demos stay at the family entry.

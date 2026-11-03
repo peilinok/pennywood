@@ -8,12 +8,12 @@ Six production pages use Flutter/Drift. Local UI does not display fake cloud del
 |---|---|---|
 | Child | My wishes | Primary wish, confirmed accumulation, target/gap, queue, at most one concrete rework hint |
 | Child | My tasks | Accept/submit, waiting, withdraw, feedback, resubmit, history |
-| Child | My pocket money | Available cash, holdings, pending withdrawal, planned debt, ledger; secondary finance/advance entry |
-| Parent | Pending review | Selected child, original standards, checking, actual payment |
-| Parent | Children and wishes | Child selection, queue, primary wish, savings/receipt milestones |
-| Parent | Family agreements | Standards/payment, pause/edit, yield budget/rate, backups/passcodes/recovery |
+| Child | My pocket money | One available balance, nonzero principal/frozen/debt, direct withdrawal and holding/advance records, grouped plans, classified ledger and one classroom |
+| Parent | Pending | Selected child, direct checking/payment, withdrawal handover, advance offers/funding; child-waiting offers are read-only |
+| Parent | Child | Wishes/receipts, ledger, independent budget/consent, separate profile name and one temporary-task creation entry |
+| Parent | Family | Shared task standards/payment, pause/edit, independent product rates, backups/passcodes/recovery |
 
-Each role has three main destinations. Use a sidebar when both dimensions allow it; otherwise use bottom navigation, including short windows and large text. Do not shrink an iPad canvas to fit a phone. More opens the optional Flame town.
+Each role has three main destinations. Use a sidebar when both dimensions allow it; otherwise use bottom navigation, including short windows and large text. Do not shrink an iPad canvas to fit a phone. More contains Appearance and an explicit return to family entry. Default appearance follows the system; light/dark overrides are available. Returning real families enter the selected child automatically once; demos stay explicit. The production town entry is retired by ADR 0003.
 
 ## Frequent child actions
 
@@ -37,7 +37,7 @@ Present saving enough, receiving the gift, and repaying debt separately. Explain
 
 Follow the [design system](../design-system/pennywood/MASTER.md): paper, charcoal, chestnut, grass green, and wheat for payment. Preserve squirrel, telescope, tree, and task-art colors rather than assigning each card a pastel background.
 
-Pair functional icons with text/semantics; never encode posting state only in color. Read monetary purpose and amount together, and read wish accumulation/target/progress. Name the page scroll region while retaining independent buttons. Minimum targets are 44 pt. Support safe areas, vertical scrolling, light/dark themes, scalable text, and reduced decorative motion without disabling active walking or saving.
+Pair functional icons with text/semantics; never encode posting state only in color. Read monetary purpose and amount together, and read wish accumulation/target/progress. Name the page scroll region while retaining independent buttons. Minimum targets are 44 pt. Support safe areas, vertical scrolling, light/dark themes, scalable text, and reduced decorative motion without disabling saving. Internal walking tests remain preserved independently.
 
 Orientation, window, and keyboard changes retain child, page, ordinary input, and ledger. Backgrounding clears secret fields for credential protection. See [native validation](10-native-validation.md) and [adaptive validation](11-adaptive-layout-validation.md). Browser/widget sizes do not prove human VoiceOver usability.
 

@@ -2,16 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:pennywood/features/wish_home.dart';
+import 'package:pennywood/data/service.dart';
 import 'package:pennywood/domain/money.dart';
+import 'package:pennywood/main.dart';
 import 'wishboard_support.dart';
 
-void main() {
+void main({bool verifyRealIsolation = false}) {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
   testWidgets(
     'Isolated demo: deposits, both dividends, advance installments, withdrawals, and growth',
     (tester) async {
-      await startWishboard(reset: true, demo: true);
+      final service = await startWishboard(
+        reset: true,
+        demo: true,
+        startApp: false,
+      );
+      if (verifyRealIsolation) {
+        await service.createFamily('real', '719385', ['小满', '小禾']);
+        final parent = await service.auth.unlock('real', 'first', '719385');
+        final task = await service.execute(
+          parent,
+          'finance-isolation-task',
+          'addTask',
+          ['整理图书', 800, '按约定分类'],
+        );
+        for (final action in ['accept', 'submit', 'approve', 'pay']) {
+          await service.execute(parent, 'finance-isolation-$action', action, [
+            task,
+          ]);
+        }
+        service.auth.lock();
+      }
+      runApp(PennywoodApp(service));
       Future<void> until(bool Function() condition) async {
         for (var i = 0; i < 200; i++) {
           await tester.pump(const Duration(milliseconds: 100));
@@ -21,7 +44,7 @@ void main() {
       }
 
       Future<void> tap(Finder finder) async {
-        await until(() => finder.evaluate().isNotEmpty);
+        await until(() => finder.evaluate().length == 1);
         await tester.ensureVisible(finder);
         await Future<void>.delayed(const Duration(milliseconds: 350));
         await tester.tap(finder);
@@ -46,6 +69,22 @@ void main() {
         await key('book-continue');
       }
 
+      if (verifyRealIsolation) {
+        await until(() => find.byType(WishHome).evaluate().isNotEmpty);
+        await tap(find.byTooltip('更多'));
+        await text('返回家庭入口');
+        await until(() => find.byType(WishHome).evaluate().isEmpty);
+        await until(() {
+          final buttons = find
+              .ancestor(
+                of: find.text('进入独立示例家庭'),
+                matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+              )
+              .evaluate();
+          return buttons.length == 1 &&
+              (buttons.single.widget as ButtonStyleButton).onPressed != null;
+        });
+      }
       await text('进入独立示例家庭');
       await until(() => find.byType(WishHome).evaluate().isNotEmpty);
       final c = tester.widget<WishHome>(find.byType(WishHome)).controller;
@@ -69,7 +108,7 @@ void main() {
       }
 
       Future<void> close() async {
-        if (find.byTooltip('Back').evaluate().isNotEmpty) await back();
+        if (find.byType(BackButton).evaluate().isNotEmpty) await back();
         if (find.text('待办').evaluate().isNotEmpty) await key('parent-entry');
       }
 
@@ -163,6 +202,12 @@ void main() {
 
       await text('我的心愿');
       await key('manage-main-wish');
+      await key('edit-wish-${c.account.mainWish!.id}');
+      await input('action-field-0', '我的天文望远镜');
+      await input('action-field-1', '398');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await key('action-save');
+      await until(() => c.account.goal == 39800);
       await key('propose-advance-${c.account.mainWish!.id}');
       await book(['望远镜配件', '60', '3', Day.add(c.account.date, 30)]);
       await until(() => c.account.loans.isNotEmpty);
@@ -211,7 +256,7 @@ void main() {
       await book(['10', '买绘本']);
       await until(() => c.account.pendingCash == 1000);
       final assetsBeforeDelivery = c.account.assets;
-      await close();
+      await until(() => find.byType(BackButton).evaluate().isEmpty);
       await parent();
       await text('确认实际交付');
       await key('confirm-action');
@@ -220,13 +265,46 @@ void main() {
       await close();
       await visit('growth');
       await tap(find.byType(CheckboxListTile));
+      await input('projection-weekly', '5');
+      FocusManager.instance.primaryFocus?.unfocus();
+      expect(c.account.wallet, beforePay - 6030 - 1000);
       await screenshot('12-growth');
       await close();
       await key('profiles');
       await key('switch-second');
       await until(() => c.child == 'second' && c.account.wallet == 10000);
       expect(c.account.loans, isEmpty);
+      if (verifyRealIsolation) {
+        final real = await c.service.db.load('real', 'first');
+        expect(real.wallet, 800);
+        expect(real.bonusEarned, 0);
+        expect(real.loans, isEmpty);
+      }
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+Future<void> verifyFinanceRestart(WidgetTester tester) async {
+  final service = await startWishboard(demo: true);
+  final s = await service.db.load('demo', 'first');
+  expect(s.wallet, 3003);
+  expect(s.repaidTotal, 6030);
+  expect(s.withdrawn, 1000);
+  expect(s.debt, 0);
+  expect(s.loans.single.status, 'paid');
+  expect(s.loans.single.payments.last.waived, 30);
+  expect(s.active.single.principal, 10075);
+  expect(s.active.single.product, 'dividend');
+  expect((await service.db.load('real', 'first')).wallet, 800);
+  expect((await service.db.load('demo', 'second')).wallet, 10000);
+  final count = s.ledger.length;
+  final replay = TownService(service.db, service.auth, FixedClock(s.date));
+  await replay.restore('demo');
+  final again = await service.db.load('demo', 'first');
+  expect(again.wallet, 3003);
+  expect(again.ledger.length, count);
+  again.check();
+  expect(await service.db.rows('PRAGMA foreign_key_check'), isEmpty);
+  await tester.pump(const Duration(milliseconds: 400));
 }

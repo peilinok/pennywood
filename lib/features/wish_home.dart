@@ -5,7 +5,7 @@ import '../app/controller.dart';
 import '../app/detail_page.dart';
 import '../app/named_page_scroll.dart';
 import '../app/paper_theme.dart';
-import '../app/screens.dart' show TownHome, tell, userMessage;
+import '../app/screens.dart' show tell, userMessage;
 import '../domain/engine.dart';
 import '../domain/model.dart';
 import '../domain/money.dart';
@@ -15,8 +15,15 @@ import 'panels.dart';
 import 'family_settings.dart';
 
 class WishHome extends StatefulWidget {
-  const WishHome(this.controller, {super.key});
+  const WishHome(
+    this.controller, {
+    this.initialPage = 0,
+    this.parentEntry = false,
+    super.key,
+  });
   final TownController controller;
+  final int initialPage;
+  final bool parentEntry;
   @override
   State<WishHome> createState() => _WishHomeState();
 }
@@ -25,8 +32,9 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   TownController get c => widget.controller;
   ChildAccount get s => c.account;
   PaperColors get p => PaperColors.of(context);
-  bool parentMode = false, completedOnly = false;
-  int page = 0;
+  late bool parentMode = widget.parentEntry;
+  bool completedOnly = false;
+  late int page = widget.initialPage;
   String ledgerFilter = 'money';
   bool fullLedger = false;
   final scrolls = <String, ScrollController>{};
@@ -127,19 +135,10 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> panel(String name) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => TownPanel(c, name, lockOnClose: !parentMode),
-    );
-    if (mounted) setState(() {});
-  }
-
   Future<void> finance(String name, {String? recordId}) =>
       Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => TownPanel(c, name, asPage: true, recordId: recordId),
+          builder: (_) => FinancePage(c, name, recordId: recordId),
         ),
       );
 
@@ -423,38 +422,17 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
             icon: const Icon(Icons.face_outlined),
           ),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              small(
-                '${s.name}的${parentMode ? '家长空间' : '心愿手账'}${c.demo ? ' · 独立示例' : ''}',
-              ),
-              Text(
-                parentMode ? '陪每一份小小努力长大。' : '今天，也离心愿近一点。',
-                style: TextStyle(
-                  fontSize: wide ? 25 : 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (wide) tag('本地存档 · ${c.busy ? '保存中' : '已保存'}', done: !c.busy),
-        IconButton(
-          key: const Key('theme-toggle'),
-          tooltip: p.dark ? '使用浅色' : '使用深色',
-          onPressed: () =>
-              paperThemeMode.value = p.dark ? ThemeMode.light : ThemeMode.dark,
-          icon: Icon(
-            p.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+          child: Text(
+            '${s.name}的${parentMode ? '家长空间' : '心愿手账'}${c.demo ? ' · 独立示例' : ''}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
         if (!wide)
-          IconButton(
+          TextButton.icon(
             key: const Key('parent-entry'),
-            tooltip: parentMode ? '回到孩子端' : '家长空间',
             onPressed: changeRole,
             icon: Icon(parentMode ? Icons.logout : Icons.lock_outline),
+            label: Text(parentMode ? '回孩子端' : '家长'),
           ),
         PopupMenuButton<String>(
           tooltip: '更多',
@@ -463,21 +441,44 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
               c.lock();
               Navigator.pop(context);
             }
-            if (v == 'town') {
-              c.lock();
-              await Navigator.push(
-                context,
-                MaterialPageRoute<void>(builder: (_) => TownHome(c)),
-              );
-              if (mounted) setState(() {});
-            }
+            if (v == 'appearance') await appearance();
           },
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 'town', child: Text('去小镇散步')),
+            PopupMenuItem(value: 'appearance', child: Text('外观')),
             PopupMenuItem(value: 'home', child: Text('返回家庭入口')),
           ],
         ),
       ],
+    ),
+  );
+
+  Future<void> appearance() => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => DetailPage(
+        title: const Text('外观'),
+        content: SingleChildScrollView(
+          child: ValueListenableBuilder<ThemeMode>(
+            valueListenable: paperThemeMode,
+            builder: (_, mode, _) => RadioGroup<ThemeMode>(
+              groupValue: mode,
+              onChanged: (v) => paperThemeMode.value = v!,
+              child: Column(
+                children: [
+                  for (final item in [
+                    ('跟随系统', ThemeMode.system),
+                    ('浅色', ThemeMode.light),
+                    ('深色', ThemeMode.dark),
+                  ])
+                    RadioListTile<ThemeMode>(
+                      value: item.$2,
+                      title: Text(item.$1),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     ),
   );
 
@@ -588,7 +589,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
           key: const Key('parent-entry'),
           onPressed: changeRole,
           icon: Icon(parentMode ? Icons.logout : Icons.lock_outline, size: 18),
-          label: Text(parentMode ? '回到孩子端' : '家长空间'),
+          label: Text(parentMode ? '回孩子端' : '家长'),
         ),
       ],
     ),
@@ -721,7 +722,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    '头号心愿 · ${w.kind == 'gift' ? '礼物心愿' : '攒钱目标'}',
+                                    '正在攒的心愿 · ${w.kind == 'gift' ? '礼物心愿' : '攒钱目标'}',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -903,14 +904,14 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     if (w.receivedOn != null) return '礼物已到手';
     if (w.kind == 'saving' && w.achievedOn != null) return '已攒够';
     if (w.achievedOn != null) return '已攒够，等礼物到手';
-    return w.isMain ? '头号心愿' : '排队中';
+    return w.isMain ? '正在攒的心愿' : '排队中';
   }
 
   Future<void> confirmWish(String action, Wish w) async {
     final (title, note) = switch (action) {
       'markSaved' => ('记下攒够纪念', '记录今天已达到目标，不扣钱、不冻结零钱。这是当时的纪念，之后的实际积累仍随账本变化。'),
       'deleteWish' => ('删除这份心愿？', '只删除尚未完成、没有付款关联的心愿，不改变零钱与流水。已有纪念或申请请归档。'),
-      _ => ('把心愿收进档案？', '保留目标、完成纪念、付款关联与债务。归档头号心愿后，请明确选择下一个。'),
+      _ => ('把心愿收进档案？', '保留目标、完成纪念、付款关联与债务。归档正在攒的心愿后，请明确选择下一个。'),
     };
     await showDialog<void>(
       context: context,
@@ -1017,7 +1018,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                               onPressed: c.busy
                                   ? null
                                   : () => run('selectWish', [id]),
-                              child: const Text('设为头号'),
+                              child: const Text('设为正在攒的心愿'),
                             ),
                           if (w.available &&
                               w.isMain &&
@@ -1038,7 +1039,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                                       if (!parentMode || c.parent == null) {
                                         tell(
                                           context,
-                                          '请家长在「孩子与心愿」中核实实际付款，登记礼物到手。',
+                                          '请家长在「孩子」中核实实际付款，登记礼物到手。',
                                         );
                                         return;
                                       }
@@ -1178,7 +1179,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('同一笔积累只用于头号心愿，其他心愿先排队。'),
+                    const Text('同一笔积累只用于正在攒的心愿，其他心愿先排队。'),
                     for (final w in s.wishes.where(
                       (w) => w.status != 'deleted',
                     ))
@@ -1202,7 +1203,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                                   onPressed: c.busy
                                       ? null
                                       : () => run('selectWish', [w.id]),
-                                  child: const Text('设为头号'),
+                                  child: const Text('设为正在攒的心愿'),
                                 )
                               : const Icon(Icons.chevron_right),
                         ),
@@ -1322,48 +1323,6 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
       ),
     );
   }
-
-  Widget actionTile(
-    IconData icon,
-    String title,
-    String subtitle,
-    VoidCallback onTap,
-  ) => SizedBox(
-    width: 280,
-    child: Semantics(
-      button: true,
-      child: Material(
-        color: p.soft,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                Icon(icon, color: p.brand),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      small(subtitle),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 18),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
 
   List<Widget> tasksPage() => [
     heading('每一件小事，都算数'),
@@ -2232,17 +2191,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     (v) =>
         c.perform('familyRates', [for (final value in v) Money.parse(value)]),
   );
-  Future<void> offerLoan(Loan l) => book(
-    '家长提出最终条件 · ${l.item}',
-    [
-      ('偿还期数（月）', '${l.months}'),
-      ('首次还款日 YYYY-MM-DD', l.first),
-      ('家庭约定年利率（%，可为 0）', (l.rateBps / 100).toStringAsFixed(2)),
-    ],
-    '1–12 个月，0%–12% 年利率。等额本金、按月单利，分位余数归最后一期。孩子接受后等待实际垫付，生效后固定。',
-    (v) =>
-        c.perform('offerLoan', [l.id, months(v[0]), v[1], Money.parse(v[2])]),
-  );
+  Future<void> offerLoan(Loan l) => offerAdvance(context, c, l);
 
   Future<void> confirmParent(
     String title,
@@ -2331,7 +2280,7 @@ class _WishEditorState extends State<WishEditor> {
             : (v) => setState(() => kind = v.single),
       ),
     ),
-    note: '第一个心愿成为头号心愿，之后的先排队。同一笔积累只算一次。',
+    note: '第一个心愿成为正在攒的心愿，之后的先排队。同一笔积累只算一次。',
     onSubmit: (v) => widget.controller.perform(
       widget.wish == null ? 'addWish' : 'editWish',
       [if (widget.wish != null) widget.wish!.id, kind, v[0], Money.parse(v[1])],

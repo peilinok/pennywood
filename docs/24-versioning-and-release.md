@@ -18,7 +18,7 @@ iPhone and iPad native jobs run in parallel on separate disposable runners. The 
 
 | Version | Current baseline | Change rule |
 |---|---|---|
-| App version/build | `0.4.0+11` candidate | Increment patch for fixes, minor for compatible features, major for intentional incompatible product behavior. Any distributed binary gets a higher build number. Documentation-only changes need no app bump. Pre-1.0 status never excuses data loss. |
+| App version/build | `0.4.0+11` baseline; `0.5.0+12` simplification candidate | Increment patch for fixes, minor for compatible features, major for intentional incompatible product behavior. Any distributed binary gets a higher build number. Documentation-only changes need no app bump. Pre-1.0 status never excuses data loss. |
 | Drift schema | `6` | Increment only for persisted schema changes. Ship explicit migrations and compatibility tests; do not edit a released migration to mean something else. |
 | Encrypted archive | `Pennywood-encrypted-backup:1:schema6` | Treat encryption/envelope and payload-schema compatibility separately. Current reader accepts schema4, schema5, and schema6; changing one requires authenticated fixtures and restore tests. |
 

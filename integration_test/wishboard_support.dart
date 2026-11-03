@@ -20,11 +20,13 @@ class VerificationCredentials implements CredentialStore {
 Future<TownService> startWishboard({
   bool reset = false,
   bool demo = false,
+  String scenario = 'acceptance',
+  bool startApp = true,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   final directory = await getApplicationSupportDirectory();
   final file = File(
-    '${directory.path}/pennywood-wishboard-${demo ? 'finance' : 'acceptance'}.sqlite',
+    '${directory.path}/pennywood-wishboard-${demo ? 'finance' : scenario}.sqlite',
   );
   if (reset && await file.exists()) await file.delete();
   final service = TownService(
@@ -35,6 +37,6 @@ Future<TownService> startWishboard({
   if (demo && reset) {
     await service.createFamily('demo', '719385', ['示例栗栗', '示例桃桃'], demo: true);
   }
-  runApp(PennywoodApp(service));
+  if (startApp) runApp(PennywoodApp(service));
   return service;
 }
