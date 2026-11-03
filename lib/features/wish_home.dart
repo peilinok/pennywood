@@ -123,7 +123,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => TownPanel(c, name),
+      builder: (_) => TownPanel(c, name, lockOnClose: !parentMode),
     );
     if (mounted) setState(() {});
   }
@@ -142,13 +142,13 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
       context: context,
       barrierDismissible: false,
       builder: (_) => ActionForm(
-        title: '约定${QuickTask.names[id]} · ${s.name}',
+        title: '家庭共用约定 · ${QuickTask.names[id]}',
         labels: const ['完成标准', '每次报酬（元）'],
         initial: [
           q?.detail ?? QuickTask.standards[id]!,
           q != null && q.amount > 0 ? Money.format(q.amount) : '',
         ],
-        note: '请先和孩子说好。每天最多一份；修改只影响新的任务，已提交的标准与金额保留。',
+        note: '全家孩子共用标准和报酬，各自完成、各自入账。每个孩子每天最多一份；已有任务承诺保留。',
         submitLabel: '保存约定',
         onSubmit: (v) =>
             c.perform('configureQuick', [id, Money.parse(v[1]), v[0]]),
@@ -1523,6 +1523,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
           (l) => [
             'income',
             'yield',
+            'market-return',
             'repay',
             'withdraw',
             'invest',
@@ -1531,8 +1532,14 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
         .isEmpty)
       card(small('家长实际兑现的第一份报酬，会保存在这里。')),
     for (final l in s.ledger.reversed.where(
-      (l) =>
-          ['income', 'yield', 'repay', 'withdraw', 'invest'].contains(l.kind),
+      (l) => [
+        'income',
+        'yield',
+        'market-return',
+        'repay',
+        'withdraw',
+        'invest',
+      ].contains(l.kind),
     ))
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -1545,7 +1552,9 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                     : l.kind == 'yield'
                     ? Icons.eco_outlined
                     : Icons.menu_book_outlined,
-                color: p.green,
+                color: l.kind == 'market-return' && l.amount < 0
+                    ? p.danger
+                    : p.green,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1716,8 +1725,8 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   }
 
   List<Widget> agreementsPage() => [
-    heading('${s.name}的常做任务'),
-    small('先约好标准与报酬，再由孩子在现实里完成。每天最多提交一份，各次记录独立保存。'),
+    heading('全家共用的常做任务'),
+    small('只需设置一次，全家孩子共用。每个孩子每天最多提交一份，各自的钱包、完成记录和预算仍独立。'),
     const SizedBox(height: 16),
     for (final id in QuickTask.names.keys)
       Padding(

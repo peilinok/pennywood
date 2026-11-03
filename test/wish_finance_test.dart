@@ -335,7 +335,7 @@ void main() {
         final newBytes = await target.export(access, password);
         expect(
           jsonDecode(utf8.decode(newBytes))['format'],
-          'Pennywood-encrypted-backup:1:schema5',
+          'Pennywood-encrypted-backup:1:schema6',
         );
         final upgraded = await target.read(newBytes, password);
         await target.restore(
@@ -457,7 +457,7 @@ void main() {
       try {
         expect(
           (await upgraded.rows('PRAGMA user_version')).single.values.single,
-          5,
+          6,
         );
         expect(
           (await upgraded.rows(

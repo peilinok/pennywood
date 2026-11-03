@@ -21,7 +21,7 @@ class PennyDatabase extends GeneratedDatabase {
       },
     ),
   );
-  static const version = 5;
+  static const version = 6;
   @override
   int get schemaVersion => version;
   @override
@@ -37,7 +37,7 @@ class PennyDatabase extends GeneratedDatabase {
       await customStatement('PRAGMA user_version = $schemaVersion');
     }),
     onUpgrade: (m, from, to) => transaction(() async {
-      if (from < 1 || from > 4 || to != 5) {
+      if (from < 1 || from > 5 || to != 6) {
         throw StateError('不支持从版本 $from 升级到 $to；原始存档保留');
       }
       if (from == 1) {
@@ -59,17 +59,24 @@ class PennyDatabase extends GeneratedDatabase {
       for (final sql in from < 4 ? familySchema : <String>[]) {
         await customStatement(sql);
       }
-      for (final sql in wishFinanceSchema) {
+      for (final sql in from < 5 ? wishFinanceSchema : <String>[]) {
         await customStatement(sql);
       }
-      for (final (table, column) in [
-        ('wish_withdrawals', 'withdrawal_id'),
-        ('wish_loans', 'loan_id'),
-      ]) {
+      for (final (table, column)
+          in from < 5
+              ? [
+                  ('wish_withdrawals', 'withdrawal_id'),
+                  ('wish_loans', 'loan_id'),
+                ]
+              : <(String, String)>[]) {
         await customStatement(
           'INSERT INTO $table(family_id,child_id,wish_id,$column,received) SELECT family_id,child_id,id,$column,1 FROM wishes WHERE $column IS NOT NULL',
         );
       }
+      for (final sql in experienceSchema) {
+        await customStatement(sql);
+      }
+      await seedFamilyTerms();
       await customStatement('PRAGMA user_version = $schemaVersion');
     }),
     beforeOpen: (details) async {
@@ -121,7 +128,14 @@ class PennyDatabase extends GeneratedDatabase {
         loans = await list('loans'),
         ledger = await list('ledger'),
         wishes = await list('wishes'),
-        quickTasks = await list('quick_tasks'),
+        quickTasks = await rows(
+          'SELECT * FROM family_agreements WHERE family_id=? ORDER BY rowid',
+          [family],
+        ),
+        productTerms = await rows(
+          'SELECT * FROM family_product_terms WHERE family_id=?',
+          [family],
+        ),
         wishWithdrawals = {
           for (final r in await list('wish_withdrawals'))
             r['withdrawal_id'] as String: r,
@@ -140,6 +154,17 @@ class PennyDatabase extends GeneratedDatabase {
       repaidTotal: a['repaid_total'],
       budget: a['budget'],
       rateBps: a['rate_bps'],
+      marketReturn: a['market_return'],
+      marketSpent: a['market_spent'],
+      marketEnabled: a['market_enabled'] == 1,
+      productRates: {
+        for (final r in productTerms)
+          r['product'] as String: r['rate_bps'] as int,
+      },
+      productVersions: {
+        for (final r in productTerms)
+          r['product'] as String: r['terms_version'] as int,
+      },
       termsVersion: a['terms_version'],
       sequence: a['sequence'],
       distribution: a['distribution'],
@@ -291,6 +316,9 @@ class PennyDatabase extends GeneratedDatabase {
         'repaid_total': s.repaidTotal,
         'budget': s.budget,
         'rate_bps': s.rateBps,
+        'market_return': s.marketReturn,
+        'market_spent': s.marketSpent,
+        'market_enabled': s.marketEnabled ? 1 : 0,
         'terms_version': s.termsVersion,
         'sequence': s.sequence,
         'distribution': s.distribution,
@@ -518,6 +546,60 @@ class PennyDatabase extends GeneratedDatabase {
     ...wishboardSchema,
     ...familySchema,
     ...wishFinanceSchema,
+    ...experienceSchema,
+  ];
+
+  Future<void> seedFamilyTerms() async {
+    // Select the previously active child's future templates; accepted task/position snapshots never change.
+    await customStatement(
+      'INSERT INTO family_agreements(family_id,id,detail,amount,enabled) SELECT q.family_id,q.id,q.detail,q.amount,q.enabled FROM quick_tasks q JOIN families f ON q.family_id=f.id AND q.child_id=f.active_child ON CONFLICT(family_id,id) DO NOTHING',
+    );
+    for (final product in ['sprout', 'annual', 'dividend']) {
+      await customStatement(
+        'INSERT INTO family_product_terms(family_id,product,rate_bps,terms_version) SELECT c.family_id,?,c.rate_bps,CASE WHEN (SELECT COUNT(DISTINCT rate_bps) FROM children WHERE family_id=c.family_id)>1 THEN (SELECT MAX(terms_version)+1 FROM children WHERE family_id=c.family_id) ELSE c.terms_version END FROM children c JOIN families f ON c.family_id=f.id AND c.id=f.active_child ON CONFLICT(family_id,product) DO NOTHING',
+        [product],
+      );
+    }
+  }
+
+  Future<void> saveFamilyAgreements(String family, ChildAccount s) async {
+    for (final q in s.quickTasks) {
+      await upsert(
+        'family_agreements',
+        {
+          'family_id': family,
+          'id': q.id,
+          'detail': q.detail,
+          'amount': q.amount,
+          'enabled': q.enabled ? 1 : 0,
+        },
+        ['family_id', 'id'],
+      );
+    }
+  }
+
+  Future<void> saveProductRates(String family, ChildAccount s) async {
+    for (final id in ['sprout', 'annual', 'dividend']) {
+      await upsert(
+        'family_product_terms',
+        {
+          'family_id': family,
+          'product': id,
+          'rate_bps': s.rateFor(id),
+          'terms_version': s.versionFor(id),
+        },
+        ['family_id', 'product'],
+      );
+    }
+  }
+
+  static const experienceSchema = [
+    "CREATE UNIQUE INDEX one_market_settlement_per_position ON ledger(family_id,child_id,reference_id) WHERE kind='market-return'",
+    'ALTER TABLE children ADD COLUMN market_return INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE children ADD COLUMN market_spent INTEGER NOT NULL DEFAULT 0 CHECK(market_spent>=0)',
+    'ALTER TABLE children ADD COLUMN market_enabled INTEGER NOT NULL DEFAULT 0 CHECK(market_enabled IN (0,1))',
+    'CREATE TABLE family_agreements(family_id TEXT NOT NULL REFERENCES families(id), id TEXT NOT NULL, detail TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount>=0), enabled INTEGER NOT NULL CHECK(enabled IN (0,1)), PRIMARY KEY(family_id,id))',
+    'CREATE TABLE family_product_terms(family_id TEXT NOT NULL REFERENCES families(id), product TEXT NOT NULL, rate_bps INTEGER NOT NULL CHECK(rate_bps BETWEEN 0 AND 1000), terms_version INTEGER NOT NULL CHECK(terms_version>0), PRIMARY KEY(family_id,product))',
   ];
 
   static const wishFinanceSchema = [

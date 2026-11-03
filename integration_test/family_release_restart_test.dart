@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'family_release_support.dart';
+import 'experience_acceptance.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -38,5 +39,9 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
     },
+  );
+  testWidgets(
+    'A fresh process retains schema6 investments, family terms, losses, and operation IDs',
+    verifyExperienceRestart,
   );
 }

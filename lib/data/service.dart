@@ -127,6 +127,7 @@ class TownService {
         await db.save(family, s);
         await db.saveScene(family, s.id, SceneState());
       }
+      await db.seedFamilyTerms();
     });
   }
 
@@ -175,6 +176,13 @@ class TownService {
       await recordSystem(a.family, s, beforeSystem);
       final beforeAction = s.ledger.length;
       final result = Engine.execute(s, action, args);
+      if (action == 'configureQuick' || action == 'setQuickEnabled') {
+        await db.saveFamilyAgreements(a.family, s);
+      }
+      if (action == 'familyRates' ||
+          (action == 'settings' && args.length > 2)) {
+        await db.saveProductRates(a.family, s);
+      }
       for (final l in s.ledger.skip(beforeAction)) {
         l.operationId = operationId;
         l.actorRole = a.parent ? 'parent' : 'child';

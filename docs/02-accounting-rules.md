@@ -8,7 +8,7 @@ These rules preserve the behavior established in the reference prototype. Follow
 - Cash is stored as integer cents. Rates use basis points: 100 bps = 1%. Intermediate arithmetic retains sufficient precision; positive amounts round half up to cents at settlement, avoiding floating-point drift and integer overflow.
 - Track available cash, held principal, frozen pending withdrawals, delivered withdrawals, settled yields, and repayments separately.
 - Account assets = available cash + held principal + pending withdrawals.
-- Reconciliation: assets = paid labor income and recorded principal sources + settled yields - delivered withdrawals - repayments.
+- Reconciliation: assets = paid labor income and recorded principal sources + settled fixed yields + signed realized market returns - delivered withdrawals - repayments.
 - A parent funds an advance directly toward a purchase. Its principal never enters the child's wallet, labor income, or investable principal. Purchased objects are outside this teaching account's assets.
 - Planned debt includes unpaid principal and agreed future interest. Conservative wish accumulation is assets minus planned debt. This is not general accounting net worth; explain that future interest is included.
 - Projections, expected yields, and unperformed future work are not current assets. Distinguish promised unsettled yields from settled cash.
@@ -27,13 +27,13 @@ Accepting, submitting, and checking do not add money. Only a parent's confirmati
 | Annual-ring term | 365 days, minimum CNY 50 | Same; CNY 100 at 3% annually for 365 days earns CNY 3 |
 | Town dividend plan | 30-day periods, minimum CNY 10 | Yield follows the cash/reinvestment choice |
 
-These are family teaching parameters, not market quotes. The initial demo rate is 3% annually. A parent must explicitly agree to real terms; each new position snapshots duration, rate, amount, dividend mode, and terms version.
+These are family teaching parameters, not market quotes. Fixed products each have their own family-wide rate and terms version. Real rates start at zero; the initial demo rate is 3% annually. A parent must explicitly agree to real terms; each new position snapshots duration, rate, amount, dividend mode, and terms version.
 
 Term yield = principal x agreed annual rate x term days / 365, rounded half up to cents at settlement. Compounding occurs only when settled principal and yield enter a new period.
 
 Early redemption returns full principal. Use actual elapsed days, capped at the term, and the lower of the agreed rate and the example 0.10% annual demand rate. A 0% plan cannot gain 0.10% by redeeming early.
 
-Each child has a separate stage yield budget: available budget = total stage budget - cumulative settled yields - reserved yields of active plans. Check affordability before accepting a new promise. A deposit transfers principal from cash to holdings; it does not create assets.
+Each child has a separate stage yield budget: available budget = total stage budget - cumulative settled fixed yields - gross positive market payouts - reserved yields of active plans. Check affordability before accepting a new promise. A deposit transfers principal from cash to holdings; it does not create assets.
 
 Lowering a budget cannot consume settled or reserved promises. Rate changes affect only future plans. Withdrawal does not replenish the yield budget. No automatic monthly budget reset has been agreed.
 
@@ -47,6 +47,16 @@ Lowering a budget cannot consume settled or reserved promises. Rate changes affe
 - Catch up missed periods through the current date, exactly once each. Never book future yields as current money.
 
 The separate fund classroom illustrates ex-dividend accounting: 100 units x NAV 1.03 = CNY 103. Paying CNY 0.03 per unit leaves NAV 1.00. Cash mode holds CNY 100 of units plus CNY 3 cash; reinvestment holds 103 units x 1.00 = CNY 103. Total assets are equal at distribution. The classroom never spends real labor principal.
+
+## Real-money teaching market
+
+As approved in [ADR 0002](adr/0002-shared-agreements-and-teaching-market.md), low-volatility dividend and growth/high-volatility plans use actual pocket money after per-child parent consent. They are 30-day family teaching positions, minimum CNY 10, without exchange/index data or real securities trades. Revoking consent blocks new investments and preserves existing settlement/redemption rights.
+
+Each position snapshots version-one calendar movement and period bounds: low-volatility value is 90%-105% of principal; high-volatility value is 50%-120%. Reserve the rounded maximum positive return before transferring principal. Positive drift describes a model tendency, never a guaranteed profit or Nasdaq forecast. Refresh/replay cannot redraw a real date's prices.
+
+Holdings retain principal cost in the ledger while current indicative redemption value and unrealized change are labeled separately. Redemption or maturity returns principal plus the signed realized result to cash. Record that result once as `market-return`; positive payouts also consume gross market budget. Losses reduce the child's accumulation and never refill budget. Release unused reserved gain and do not automatically renew variable plans. Existing fixed dividend reinvestment continues under its original rules.
+
+The animated classroom uses independent hypothetical principal and time. Its unbounded five-year trend example does not replace real period bounds or create money. Parent-funded fixed yields, real market settlement, and classroom projections remain distinct.
 
 ## Advances, parent interest, and monthly repayments
 

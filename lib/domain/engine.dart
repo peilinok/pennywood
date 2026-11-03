@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'model.dart';
 import 'money.dart';
+import 'market.dart';
 
 // Pure Dart rules; callers read an isolated copy in a transaction and commit once on success.
 class Engine {
@@ -15,6 +16,8 @@ class Engine {
     'pay',
     'addTask',
     'settings',
+    'familyRates',
+    'marketPermission',
     'payRequest',
     'offerLoan',
     'fundLoan',
@@ -305,6 +308,10 @@ class Engine {
         result = buy(s, text(0), number(1), text(2)).id;
       case 'redeem':
         final p = position(s, text(0));
+        if (Product.all[p.product]!.market) {
+          settleMarket(s, p, s.date, 'redeemed');
+          break;
+        }
         final elapsed = Day.difference(p.start, s.date).clamp(0, p.days);
         final profit = Money.interest(
           p.principal,
@@ -353,21 +360,54 @@ class Engine {
         r!.status = 'paid';
         s.withdrawn += r.amount;
         s.log('withdraw', '家长已实际交付 · ${r.purpose}', r.amount, r.id);
+      case 'marketPermission':
+        s.marketEnabled = args[0] as bool;
+        s.log(
+          'permission',
+          s.marketEnabled ? '家长允许家庭波动投资：可能损失本金' : '家长暂停新波动投资，已有持有条款保留',
+          0,
+          'market',
+        );
+      case 'familyRates':
+        final products = ['sprout', 'annual', 'dividend'];
+        require(args.length == products.length, '请分别填写三种产品利率');
+        for (var i = 0; i < products.length; i++) {
+          require(number(i) >= 0 && number(i) <= 1000, '家庭约定年化范围为 0%–10%');
+        }
+        for (var i = 0; i < products.length; i++) {
+          final id = products[i];
+          if (s.rateFor(id) != number(i)) {
+            s.productVersions[id] = s.versionFor(id) + 1;
+          }
+          s.productRates[id] = number(i);
+        }
+        s.log('settings', '更新家庭共用产品利率，已有持有约定保留', 0, 'family-rates');
       case 'settings':
         require(
-          number(0) >= s.bonusEarned + s.reserved &&
+          number(0) >= s.bonusEarned + s.marketSpent + s.reserved &&
               number(0) <= Money.maxCents,
           '预算必须覆盖已承担及预留的收益',
         );
-        require(number(1) >= 0 && number(1) <= 1000, '家庭约定年化范围为 0%–10%');
+        if (args.length > 2) {
+          require(number(1) >= 0 && number(1) <= 1000, '家庭约定年化范围为 0%–10%');
+        }
         require(
-          text(2).trim().isNotEmpty && text(2).trim().length <= 8,
+          text(args.length > 2 ? 2 : 1).trim().isNotEmpty &&
+              text(args.length > 2 ? 2 : 1).trim().length <= 8,
           '孩子称呼需为 1–8 个字',
         );
-        if (s.rateBps != number(1)) s.termsVersion++;
+        if (args.length > 2) {
+          if (s.rateBps != number(1)) s.termsVersion++;
+          s.rateBps = number(1);
+          for (final id in ['sprout', 'annual', 'dividend']) {
+            if (s.rateFor(id) != number(1)) {
+              s.productVersions[id] = s.versionFor(id) + 1;
+            }
+            s.productRates[id] = number(1);
+          }
+        }
         s.budget = number(0);
-        s.rateBps = number(1);
-        s.name = text(2).trim();
+        s.name = text(args.length > 2 ? 2 : 1).trim();
         s.log(
           'settings',
           '家长更新新计划的利率和阶段预算，已有约定保留',
@@ -571,20 +611,23 @@ class Engine {
     mode(distribution);
     require(p != null, '课堂产品不能使用劳动本金交易');
     require(amount >= p!.minimum && amount <= s.wallet, '未达到起存金额或可用零钱不足');
-    final expected = Money.interest(amount, s.rateBps, p.days);
+    require(!p.market || s.marketEnabled, '请先由家长允许波动投资，并一起了解本金亏损');
+    final expected = p.market
+        ? TeachingMarket.reserve(key, amount)
+        : Money.interest(amount, s.rateFor(key), p.days);
     require(expected <= s.freeBudget, '家长可用收益预算不足，已有约定不受影响');
     final date = on ?? s.date;
     final pos = Position(
       id: s.nextId('position'),
       product: key,
       principal: amount,
-      rateBps: s.rateBps,
+      rateBps: p.market ? 0 : s.rateFor(key),
       days: p.days,
       start: date,
       end: Day.add(date, p.days),
       expected: expected,
       distribution: distribution,
-      termsVersion: s.termsVersion,
+      termsVersion: p.market ? 1 : s.versionFor(key),
     );
     s.wallet -= amount;
     s.positions.add(pos);
@@ -607,6 +650,10 @@ class Engine {
         ..sort((a, b) => a.end.compareTo(b.end));
       if (due.isEmpty) break;
       final p = due.first;
+      if (Product.all[p.product]!.market) {
+        settleMarket(s, p, p.end, 'matured');
+        continue;
+      }
       p.status = 'matured';
       s.wallet += p.principal + p.expected;
       s.bonusEarned += p.expected;
@@ -622,8 +669,8 @@ class Engine {
             p.principal + (p.distribution == 'reinvest' ? p.expected : 0);
         // Compare terms versions too: raising a rate and reverting it must not silently renew old terms.
         final nextYield = Money.interest(amount, p.rateBps, p.days);
-        if (p.rateBps == s.rateBps &&
-            p.termsVersion == s.termsVersion &&
+        if (p.rateBps == s.rateFor(p.product) &&
+            p.termsVersion == s.versionFor(p.product) &&
             nextYield <= s.freeBudget) {
           buy(s, p.product, amount, p.distribution, on: p.end);
         } else {
@@ -632,6 +679,26 @@ class Engine {
       }
     }
     s.check();
+  }
+
+  static void settleMarket(
+    ChildAccount s,
+    Position p,
+    String date,
+    String status,
+  ) {
+    final profit = TeachingMarket.profit(p, date);
+    p.status = status;
+    s.wallet += p.principal + profit;
+    s.marketReturn += profit;
+    s.marketSpent += math.max(0, profit);
+    s.log(
+      'market-return',
+      '${Product.all[p.product]!.name} · ${profit < 0 ? '本金发生亏损' : '收益已结算'}',
+      profit,
+      p.id,
+      on: date,
+    );
   }
 
   static void loanTerms(String now, int months, String first, int bps) {
