@@ -148,6 +148,9 @@ void main() {
       await settleAction(tester, find.byKey(const Key('action-save')));
       expect(c.account.mainWish!.name, '看月亮的望远镜');
       expect(c.account.goal, 4000);
+      expect(find.byKey(Key('edit-wish-$id')), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('manage-main-wish')));
       await tester.pumpAndSettle();
       expect(

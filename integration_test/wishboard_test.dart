@@ -78,6 +78,8 @@ void main() {
       await hideKeyboard();
       await key('action-save');
       await until(() => c.account.wishes.length == 2);
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 400));
       await shot('01-zero-wish');
       Future<void> unlock() async {
         await input('parent-pin', '719385');

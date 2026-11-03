@@ -175,7 +175,8 @@ void main() {
         isTrue,
       );
       await shot('04-receipt-and-debt');
-      await tap(find.text('返回'));
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 400));
 
       final directory = await getApplicationSupportDirectory();
       final backups = FamilyBackup(service.db, service.auth);

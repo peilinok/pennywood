@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../app/controller.dart';
+import '../app/detail_page.dart';
 import '../app/named_page_scroll.dart';
 import '../app/paper_theme.dart';
 import '../app/screens.dart' show TownHome, tell, userMessage;
@@ -131,13 +132,9 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
-  Future<void> newWish({Wish? wish}) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => WishEditor(c, wish: wish),
-    );
-  }
+  Future<void> newWish({Wish? wish}) => Navigator.of(context).push<void>(
+    MaterialPageRoute(builder: (_) => WishEditor(c, wish: wish, asPage: true)),
+  );
 
   Future<void> configure(String id) async {
     final q = s.quickTasks.where((q) => q.id == id).firstOrNull;
@@ -635,7 +632,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
               key: const Key('wish-folder'),
               onPressed: wishFolder,
               icon: const Icon(Icons.folder_outlined, size: 19),
-              label: const Text('心愿夹'),
+              label: const Text('其他心愿'),
             ),
           ],
         ),
@@ -674,207 +671,209 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     return LayoutBuilder(
       builder: (context, size) {
         final art = size.maxWidth >= 620;
-        return ClipRRect(
+        return InkWell(
+          key: const Key('manage-main-wish'),
+          onTap: () => manageWish(w.id),
           borderRadius: BorderRadius.circular(24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: p.surface,
-              border: Border.all(color: p.line),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                w.kind == 'gift'
-                                    ? Icons.card_giftcard
-                                    : Icons.savings_outlined,
-                                color: p.brand,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  '头号心愿 · ${w.kind == 'gift' ? '礼物心愿' : '攒钱目标'}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: p.brand,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            w.name,
-                            style: const TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Semantics(
-                            excludeSemantics: true,
-                            label:
-                                '已确认积累 ${Money.format(saved)} 元，目标 ${Money.format(w.target)} 元，进度 ${(ratio * 100).floor()}%',
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              decoration: BoxDecoration(
+                color: p.surface,
+                border: Border.all(color: p.line),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Wrap(
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  spacing: 5,
-                                  children: [
-                                    Text(
-                                      Money.format(saved),
-                                      key: const Key('wish-progress-amount'),
-                                      style: const TextStyle(
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.w700,
-                                        fontFeatures: [
-                                          FontFeature.tabularFigures(),
-                                        ],
-                                      ),
-                                    ),
-                                    small('/ ${Money.format(w.target)} 元'),
-                                    tag(
-                                      '${(ratio * 100).floor()}%',
-                                      done: true,
-                                    ),
-                                  ],
+                                Icon(
+                                  w.kind == 'gift'
+                                      ? Icons.card_giftcard
+                                      : Icons.savings_outlined,
+                                  color: p.brand,
+                                  size: 18,
                                 ),
-                                const SizedBox(height: 12),
-                                LinearProgressIndicator(
-                                  value: ratio,
-                                  minHeight: 8,
-                                  borderRadius: BorderRadius.circular(6),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    '头号心愿 · ${w.kind == 'gift' ? '礼物心愿' : '攒钱目标'}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: p.brand,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          small(
-                            saved >= w.target
-                                ? '已经准备好这份积累啦。实际领取还要请家长确认。'
-                                : '再攒 ${Money.format(math.max(0, w.target - s.conservative))} 元，就更近一步。',
-                          ),
-                          if (s.debt > 0)
-                            small('已扣除计划待还 ¥${Money.format(s.debt)}，含未来利息。'),
-                          if (w.achievedOn != null)
-                            small('${w.achievedOn} 已记录攒够纪念，礼物到手另由家长确认。'),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              if (saved >= w.target && w.achievedOn == null)
-                                FilledButton(
-                                  key: const Key('mark-saved'),
-                                  onPressed: c.busy
-                                      ? null
-                                      : () => confirmWish('markSaved', w),
-                                  child: const Text('记下攒够纪念'),
-                                ),
-                              TextButton(
-                                key: const Key('manage-main-wish'),
-                                onPressed: () => manageWish(w.id),
-                                child: const Text('管理这份心愿'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (art)
-                    Expanded(
-                      flex: 4,
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 240),
-                        color: p.night,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              right: 24,
-                              top: 20,
-                              child: Container(
-                                width: 25,
-                                height: 25,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFE8D19C),
-                                  shape: BoxShape.circle,
-                                ),
+                            const SizedBox(height: 12),
+                            Text(
+                              w.name,
+                              style: const TextStyle(
+                                fontSize: 25,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const Positioned(
-                              left: 30,
-                              top: 34,
-                              child: Icon(
-                                Icons.auto_awesome,
-                                color: Color(0xFFE8D19C),
-                                size: 18,
-                              ),
-                            ),
-                            Positioned(
-                              bottom: -42,
-                              left: -40,
-                              right: -80,
-                              child: Transform.rotate(
-                                angle: -.12,
-                                child: Container(
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    color: p.ground,
-                                    borderRadius: BorderRadius.circular(100),
+                            const SizedBox(height: 20),
+                            Semantics(
+                              container: true,
+                              excludeSemantics: true,
+                              label:
+                                  '已确认积累 ${Money.format(saved)} 元，目标 ${Money.format(w.target)} 元，进度 ${(ratio * 100).floor()}%',
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    spacing: 5,
+                                    children: [
+                                      Text(
+                                        Money.format(saved),
+                                        key: const Key('wish-progress-amount'),
+                                        style: const TextStyle(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.w700,
+                                          fontFeatures: [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                      ),
+                                      small('/ ${Money.format(w.target)} 元'),
+                                      tag(
+                                        '${(ratio * 100).floor()}%',
+                                        done: true,
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  const SizedBox(height: 12),
+                                  LinearProgressIndicator(
+                                    value: ratio,
+                                    minHeight: 8,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ],
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                36,
-                                28,
-                                36,
-                                48,
-                              ),
-                              child: SvgPicture.asset(
-                                w.kind == 'gift'
-                                    ? 'assets/svg/telescope.svg'
-                                    : 'assets/svg/tree-sprout.svg',
-                                width: 195,
-                                height: 155,
-                              ),
+                            const SizedBox(height: 10),
+                            small(
+                              saved >= w.target
+                                  ? '已经准备好这份积累啦。实际领取还要请家长确认。'
+                                  : '再攒 ${Money.format(math.max(0, w.target - s.conservative))} 元，就更近一步。',
                             ),
-                            Positioned(
-                              left: 10,
-                              right: 10,
-                              bottom: 20,
-                              child: Text(
-                                w.kind == 'gift'
-                                    ? '把远方的小秘密，看近一点。'
-                                    : '让小小的积累，慢慢发芽。',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFFFFF3DE),
-                                ),
-                              ),
+                            if (s.debt > 0)
+                              small('已扣除计划待还 ¥${Money.format(s.debt)}，含未来利息。'),
+                            if (w.achievedOn != null)
+                              small('${w.achievedOn} 已记录攒够纪念，礼物到手另由家长确认。'),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                if (saved >= w.target && w.achievedOn == null)
+                                  FilledButton(
+                                    key: const Key('mark-saved'),
+                                    onPressed: c.busy
+                                        ? null
+                                        : () => confirmWish('markSaved', w),
+                                    child: const Text('记下攒够纪念'),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ),
-                ],
+                    if (art)
+                      Expanded(
+                        flex: 4,
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 240),
+                          color: p.night,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Positioned(
+                                right: 24,
+                                top: 20,
+                                child: Container(
+                                  width: 25,
+                                  height: 25,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFE8D19C),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                              const Positioned(
+                                left: 30,
+                                top: 34,
+                                child: Icon(
+                                  Icons.auto_awesome,
+                                  color: Color(0xFFE8D19C),
+                                  size: 18,
+                                ),
+                              ),
+                              Positioned(
+                                bottom: -42,
+                                left: -40,
+                                right: -80,
+                                child: Transform.rotate(
+                                  angle: -.12,
+                                  child: Container(
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      color: p.ground,
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  36,
+                                  28,
+                                  36,
+                                  48,
+                                ),
+                                child: SvgPicture.asset(
+                                  w.kind == 'gift'
+                                      ? 'assets/svg/telescope.svg'
+                                      : 'assets/svg/tree-sprout.svg',
+                                  width: 195,
+                                  height: 155,
+                                ),
+                              ),
+                              Positioned(
+                                left: 10,
+                                right: 10,
+                                bottom: 20,
+                                child: Text(
+                                  w.kind == 'gift'
+                                      ? '把远方的小秘密，看近一点。'
+                                      : '让小小的积累，慢慢发芽。',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFFFFF3DE),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -922,191 +921,194 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   }
 
   Future<void> manageWish(String id) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AnimatedBuilder(
-        animation: c,
-        builder: (context, _) {
-          final w = s.wishes.firstWhere((w) => w.id == id);
-          final loans = s.loans.where((l) => l.wishId == w.id).toList();
-          final withdrawals = s.requests
-              .where((r) => r.wishId == w.id)
-              .toList();
-          final giftDebt = loans
-              .where((l) => l.usedForGift && l.status == 'active')
-              .fold<int>(0, (v, l) => v + l.balance);
-          final linked = loans.isNotEmpty || withdrawals.isNotEmpty;
-          return AlertDialog(
-            title: Text(w.name),
-            content: SizedBox(
-              width: 440,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${wishStatus(w)} · 目标 ¥${Money.format(w.target)}'),
-                    if (w.achievedOn != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          '${w.achievedOn} 攒够纪念\n当时真实积累 ¥${Money.format(w.achievedAmount)}。这是历史里程碑，未重复分配或扣款。',
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => AnimatedBuilder(
+          animation: c,
+          builder: (context, _) {
+            final w = s.wishes.firstWhere((w) => w.id == id);
+            final loans = s.loans.where((l) => l.wishId == w.id).toList();
+            final withdrawals = s.requests
+                .where((r) => r.wishId == w.id)
+                .toList();
+            final giftDebt = loans
+                .where((l) => l.usedForGift && l.status == 'active')
+                .fold<int>(0, (v, l) => v + l.balance);
+            final linked = loans.isNotEmpty || withdrawals.isNotEmpty;
+            return DetailPage(
+              title: Text(w.name),
+              content: SizedBox(
+                width: 440,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${wishStatus(w)} · 目标 ¥${Money.format(w.target)}'),
+                      if (w.achievedOn != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            '${w.achievedOn} 攒够纪念\n当时真实积累 ¥${Money.format(w.achievedAmount)}。这是历史里程碑，未重复分配或扣款。',
+                          ),
                         ),
-                      ),
-                    if (w.receivedOn != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          '${w.receivedOn} 礼物已到手\n实际购买 ¥${Money.format(w.receivedCost)}，关联已交付自付与已垫付本金。',
+                      if (w.receivedOn != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            '${w.receivedOn} 礼物已到手\n实际购买 ¥${Money.format(w.receivedCost)}，关联已交付自付与已垫付本金。',
+                          ),
                         ),
-                      ),
-                    if (loans.any((l) => l.usedForGift))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          giftDebt == 0
-                              ? '这份礼物的预支已经还清。'
-                              : '这份礼物计划待还 ¥${Money.format(giftDebt)}，含未来约定利息。到手不等于还清。',
+                      if (loans.any((l) => l.usedForGift))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            giftDebt == 0
+                                ? '这份礼物的预支已经还清。'
+                                : '这份礼物计划待还 ¥${Money.format(giftDebt)}，含未来约定利息。到手不等于还清。',
+                          ),
                         ),
-                      ),
-                    if (linked) ...[
-                      const SizedBox(height: 12),
-                      const Text('关联付款 · 历史保留'),
-                      for (final r in withdrawals)
-                        Text(
-                          '自付 ¥${Money.format(r.amount)} · ${r.date} · ${r.status == 'paid' ? '已交付' : '待交付'}${r.usedForGift ? ' · 已登记到手' : ''}',
-                        ),
-                      for (final l in loans)
-                        Text(
-                          '预支本金 ¥${Money.format(l.amount)} · ${l.requested} · ${l.funded == null
-                              ? '尚未垫付'
-                              : l.status == 'paid'
-                              ? '已还清'
-                              : '已垫付，待还 ¥${Money.format(l.balance)}'}${l.usedForGift ? ' · 已登记到手' : ''}',
-                        ),
-                      const Text('已有付款关联，请归档保留历史；到手不会再次扣钱。'),
-                    ],
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (w.available && w.achievedOn == null)
-                          OutlinedButton(
-                            key: Key('edit-wish-$id'),
-                            onPressed: c.busy
-                                ? null
-                                : () {
-                                    Navigator.pop(context);
-                                    newWish(wish: w);
-                                  },
-                            child: const Text('编辑心愿'),
+                      if (linked) ...[
+                        const SizedBox(height: 12),
+                        const Text('关联付款 · 历史保留'),
+                        for (final r in withdrawals)
+                          Text(
+                            '自付 ¥${Money.format(r.amount)} · ${r.date} · ${r.status == 'paid' ? '已交付' : '待交付'}${r.usedForGift ? ' · 已登记到手' : ''}',
                           ),
-                        if (w.available && !w.isMain)
-                          FilledButton(
-                            onPressed: c.busy
-                                ? null
-                                : () => run('selectWish', [id]),
-                            child: const Text('设为头号'),
+                        for (final l in loans)
+                          Text(
+                            '预支本金 ¥${Money.format(l.amount)} · ${l.requested} · ${l.funded == null
+                                ? '尚未垫付'
+                                : l.status == 'paid'
+                                ? '已还清'
+                                : '已垫付，待还 ¥${Money.format(l.balance)}'}${l.usedForGift ? ' · 已登记到手' : ''}',
                           ),
-                        if (w.available &&
-                            w.isMain &&
-                            w.achievedOn == null &&
-                            s.conservative >= w.target)
-                          FilledButton(
-                            onPressed: c.busy
-                                ? null
-                                : () => confirmWish('markSaved', w),
-                            child: const Text('记下攒够纪念'),
-                          ),
-                        if (w.available && w.kind == 'gift')
-                          OutlinedButton(
-                            key: Key('receive-gift-$id'),
-                            onPressed: c.busy
-                                ? null
-                                : () async {
-                                    if (!parentMode || c.parent == null) {
-                                      tell(
-                                        context,
-                                        '请家长在「孩子与心愿」中核实实际付款，登记礼物到手。',
-                                      );
-                                      return;
-                                    }
-                                    await showDialog<void>(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (_) => GiftReceipt(c, w),
-                                    );
-                                  },
-                            child: const Text('礼物到手，请家长登记'),
-                          ),
-                        if (w.status == 'open')
-                          TextButton(
-                            onPressed: c.busy
-                                ? null
-                                : () async {
-                                    await confirmWish('archiveWish', w);
-                                    if (context.mounted &&
-                                        s.wishes
-                                                .firstWhere(
-                                                  (item) => item.id == id,
-                                                )
-                                                .status ==
-                                            'archived') {
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                            child: const Text('归档'),
-                          ),
-                        if (w.status == 'archived' && !w.completed)
-                          TextButton(
-                            onPressed: c.busy
-                                ? null
-                                : () => run('restoreWish', [id]),
-                            child: const Text('回到排队'),
-                          ),
-                        if (w.status == 'open' &&
-                            w.achievedOn == null &&
-                            w.receivedOn == null &&
-                            !linked)
-                          TextButton(
-                            key: Key('delete-wish-$id'),
-                            onPressed: c.busy
-                                ? null
-                                : () async {
-                                    await confirmWish('deleteWish', w);
-                                    if (context.mounted &&
-                                        s.wishes
-                                                .firstWhere(
-                                                  (item) => item.id == id,
-                                                )
-                                                .status ==
-                                            'deleted') {
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                            child: const Text('删除未完成心愿'),
-                          ),
+                        const Text('已有付款关联，请归档保留历史；到手不会再次扣钱。'),
                       ],
-                    ),
-                    if (w.available && w.kind == 'gift') ...[
-                      const SizedBox(height: 12),
-                      const Text(
-                        '自付先在「我的零钱」申请领取，家长确认已实际交付。预支需完成条件确认和实际垫付。登记到手只关联原记录，不再扣钱。',
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (w.available && w.achievedOn == null)
+                            OutlinedButton(
+                              key: Key('edit-wish-$id'),
+                              onPressed: c.busy ? null : () => newWish(wish: w),
+                              child: const Text('编辑心愿'),
+                            ),
+                          if (w.available && !w.isMain)
+                            FilledButton(
+                              onPressed: c.busy
+                                  ? null
+                                  : () => run('selectWish', [id]),
+                              child: const Text('设为头号'),
+                            ),
+                          if (w.available &&
+                              w.isMain &&
+                              w.achievedOn == null &&
+                              s.conservative >= w.target)
+                            FilledButton(
+                              onPressed: c.busy
+                                  ? null
+                                  : () => confirmWish('markSaved', w),
+                              child: const Text('记下攒够纪念'),
+                            ),
+                          if (parentMode && w.available && w.kind == 'gift')
+                            OutlinedButton(
+                              key: Key('receive-gift-$id'),
+                              onPressed: c.busy || c.parent == null
+                                  ? null
+                                  : () async {
+                                      if (!parentMode || c.parent == null) {
+                                        tell(
+                                          context,
+                                          '请家长在「孩子与心愿」中核实实际付款，登记礼物到手。',
+                                        );
+                                        return;
+                                      }
+                                      await Navigator.of(context).push<void>(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              GiftReceipt(c, w, asPage: true),
+                                        ),
+                                      );
+                                    },
+                              child: const Text('礼物到手，请家长登记'),
+                            ),
+                          if (!parentMode &&
+                              w.available &&
+                              w.kind == 'gift') ...[
+                            const Text('礼物实际到手后，请家长核实付款并登记。'),
+                            OutlinedButton(
+                              key: Key('propose-advance-$id'),
+                              onPressed: c.busy
+                                  ? null
+                                  : () => proposeAdvance(context, c, w),
+                              child: const Text('和家长商量预支'),
+                            ),
+                          ],
+                          if (w.status == 'open')
+                            TextButton(
+                              onPressed: c.busy
+                                  ? null
+                                  : () async {
+                                      await confirmWish('archiveWish', w);
+                                      if (context.mounted &&
+                                          s.wishes
+                                                  .firstWhere(
+                                                    (item) => item.id == id,
+                                                  )
+                                                  .status ==
+                                              'archived') {
+                                        Navigator.pop(context);
+                                      }
+                                    },
+                              child: const Text('归档'),
+                            ),
+                          if (w.status == 'archived' && !w.completed)
+                            TextButton(
+                              onPressed: c.busy
+                                  ? null
+                                  : () => run('restoreWish', [id]),
+                              child: const Text('回到排队'),
+                            ),
+                          if (w.status == 'open' &&
+                              w.achievedOn == null &&
+                              w.receivedOn == null &&
+                              !linked)
+                            TextButton(
+                              key: Key('delete-wish-$id'),
+                              onPressed: c.busy
+                                  ? null
+                                  : () async {
+                                      await confirmWish('deleteWish', w);
+                                      if (context.mounted &&
+                                          s.wishes
+                                                  .firstWhere(
+                                                    (item) => item.id == id,
+                                                  )
+                                                  .status ==
+                                              'deleted') {
+                                        Navigator.pop(context);
+                                      }
+                                    },
+                              child: const Text('删除未完成心愿'),
+                            ),
+                        ],
                       ),
+                      if (w.available && w.kind == 'gift') ...[
+                        const SizedBox(height: 12),
+                        const Text(
+                          '自付先在「我的零钱」申请领取，家长确认已实际交付。预支需完成条件确认和实际垫付。登记到手只关联原记录，不再扣钱。',
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('返回'),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -1148,64 +1150,60 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   );
 
   Future<void> wishFolder() async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AnimatedBuilder(
-        animation: c,
-        builder: (context, _) => AlertDialog(
-          title: Text('${s.name}的心愿夹'),
-          content: SizedBox(
-            width: 440,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('同一笔积累只用于头号心愿，其他心愿先排队。'),
-                  for (final w in s.wishes.where((w) => w.status != 'deleted'))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          w.kind == 'gift'
-                              ? Icons.card_giftcard
-                              : Icons.savings_outlined,
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => AnimatedBuilder(
+          animation: c,
+          builder: (context, _) => DetailPage(
+            title: const Text('其他心愿'),
+            content: SizedBox(
+              width: 440,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('同一笔积累只用于头号心愿，其他心愿先排队。'),
+                    for (final w in s.wishes.where(
+                      (w) => w.status != 'deleted',
+                    ))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            w.kind == 'gift'
+                                ? Icons.card_giftcard
+                                : Icons.savings_outlined,
+                          ),
+                          title: Text(w.name),
+                          subtitle: Text(
+                            '目标 ¥${Money.format(w.target)} · ${wishStatus(w)}',
+                          ),
+                          onTap: () => manageWish(w.id),
+                          trailing: w.available && !w.isMain
+                              ? TextButton(
+                                  key: Key('main-${w.id}'),
+                                  onPressed: c.busy
+                                      ? null
+                                      : () => run('selectWish', [w.id]),
+                                  child: const Text('设为头号'),
+                                )
+                              : const Icon(Icons.chevron_right),
                         ),
-                        title: Text(w.name),
-                        subtitle: Text(
-                          '目标 ¥${Money.format(w.target)} · ${wishStatus(w)}',
-                        ),
-                        onTap: () => manageWish(w.id),
-                        trailing: w.available && !w.isMain
-                            ? TextButton(
-                                key: Key('main-${w.id}'),
-                                onPressed: c.busy
-                                    ? null
-                                    : () => run('selectWish', [w.id]),
-                                child: const Text('设为头号'),
-                              )
-                            : const Icon(Icons.chevron_right),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
+            actions: [
+              FilledButton.icon(
+                key: const Key('new-wish'),
+                onPressed: newWish,
+                icon: const Icon(Icons.add),
+                label: const Text('新建心愿'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('返回'),
-            ),
-            FilledButton.icon(
-              key: const Key('new-wish'),
-              onPressed: () {
-                Navigator.pop(context);
-                newWish();
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('新建心愿'),
-            ),
-          ],
         ),
       ),
     );
@@ -1895,9 +1893,15 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
 
 // The form owns input/errors so reflow and validation failures preserve the child input.
 class WishEditor extends StatefulWidget {
-  const WishEditor(this.controller, {this.wish, super.key});
+  const WishEditor(
+    this.controller, {
+    this.wish,
+    this.asPage = false,
+    super.key,
+  });
   final TownController controller;
   final Wish? wish;
+  final bool asPage;
   @override
   State<WishEditor> createState() => _WishEditorState();
 }
@@ -1906,6 +1910,7 @@ class _WishEditorState extends State<WishEditor> {
   late String kind = widget.wish?.kind ?? 'gift';
   @override
   Widget build(BuildContext context) => ActionForm(
+    asPage: widget.asPage,
     title: widget.wish == null ? '写下一个小心愿' : '调整这份心愿',
     labels: const ['心愿名称', '目标金额（元）'],
     initial: [
@@ -1948,9 +1953,15 @@ class _WishEditorState extends State<WishEditor> {
 }
 
 class GiftReceipt extends StatefulWidget {
-  const GiftReceipt(this.controller, this.wish, {super.key});
+  const GiftReceipt(
+    this.controller,
+    this.wish, {
+    this.asPage = false,
+    super.key,
+  });
   final TownController controller;
   final Wish wish;
+  final bool asPage;
   @override
   State<GiftReceipt> createState() => _GiftReceiptState();
 }
@@ -1985,6 +1996,7 @@ class _GiftReceiptState extends State<GiftReceipt> {
         .where((l) => loans.contains(l.id))
         .fold<int>(0, (v, l) => v + l.amount);
     return ActionForm(
+      asPage: widget.asPage,
       title: '礼物已实际到手 · ${s.name}',
       labels: const ['实际购买金额（元）'],
       initial: [Money.format(widget.wish.target)],
@@ -2077,6 +2089,7 @@ class ActionForm extends StatefulWidget {
     this.note,
     this.leading,
     this.secretFields = const {},
+    this.asPage = false,
     super.key,
   });
   final String title, submitLabel;
@@ -2084,6 +2097,7 @@ class ActionForm extends StatefulWidget {
   final String? note;
   final Widget? leading;
   final Set<int> secretFields;
+  final bool asPage;
   final Future<void> Function(List<String>) onSubmit;
   @override
   State<ActionForm> createState() => _ActionFormState();
@@ -2124,7 +2138,8 @@ class _ActionFormState extends State<ActionForm> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !saving,
-    child: AlertDialog(
+    child: FormSurface(
+      asPage: widget.asPage,
       title: Text(widget.title),
       content: SizedBox(
         width: 460,
@@ -2196,10 +2211,11 @@ class _ActionFormState extends State<ActionForm> with WidgetsBindingObserver {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: saving ? null : () => Navigator.pop(context),
-          child: const Text('返回'),
-        ),
+        if (!widget.asPage)
+          TextButton(
+            onPressed: saving ? null : () => Navigator.pop(context),
+            child: const Text('返回'),
+          ),
         FilledButton(
           key: const Key('action-save'),
           onPressed: saving
