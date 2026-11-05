@@ -24,7 +24,10 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   PaperColors get p => PaperColors.of(context);
   bool parentMode = false, completedOnly = false;
   int page = 0;
-  final scroll = ScrollController();
+  final scrolls = <String, ScrollController>{};
+  String get pageKey => '${c.child}-$parentMode-$page';
+  ScrollController get scroll =>
+      scrolls.putIfAbsent(pageKey, () => ScrollController());
   final pin = TextEditingController();
   String? pinError;
   bool unlocking = false;
@@ -38,7 +41,9 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    scroll.dispose();
+    for (final controller in scrolls.values) {
+      controller.dispose();
+    }
     pin.dispose();
     c.lock();
     super.dispose();
@@ -69,7 +74,6 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
 
   void navigate(int index) {
     setState(() => page = index);
-    if (scroll.hasClients) scroll.jumpTo(0);
   }
 
   void changeRole() {
@@ -80,7 +84,6 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
       page = 0;
       pinError = null;
     });
-    if (scroll.hasClients) scroll.jumpTo(0);
   }
 
   Future<void> profiles() async {
@@ -332,6 +335,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                             header(wide),
                             Expanded(
                               child: NamedPageScroll(
+                                key: PageStorageKey(pageKey),
                                 label: parentMode && c.parent == null
                                     ? '家长空间解锁'
                                     : '${destinations[page].$1}内容',
@@ -646,41 +650,20 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
         icon: const Icon(Icons.switch_account_outlined),
         label: const Text('选择另一个孩子'),
       ),
-    ] else ...[
-      heading(
-        '做好了，点一下',
-        action: TextButton(
-          onPressed: () => navigate(1),
-          child: const Text('查看任务 ›'),
+    ] else if (s.tasks.any((t) => t.status == 'needsWork')) ...[
+      const SizedBox(height: 20),
+      card(
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.chat_bubble_outline, color: p.brand),
+          title: const Text('家长给了你一条小提醒'),
+          subtitle: Text(
+            s.tasks.firstWhere((t) => t.status == 'needsWork').name,
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () =>
+              taskDetail(s.tasks.firstWhere((t) => t.status == 'needsWork')),
         ),
-      ),
-      quickGrid(),
-      const SizedBox(height: 10),
-      small('现实中做好再点。家长实际兑现后，零钱才会增加。'),
-      heading('还有这些小小的可能'),
-      Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          actionTile(
-            Icons.assignment_outlined,
-            '现实劳动与小任务',
-            '挑一件约好的事',
-            () => navigate(1),
-          ),
-          actionTile(
-            Icons.eco_outlined,
-            '让已有零钱慢慢长大',
-            '先看期限，再做安排',
-            () => panel('savings'),
-          ),
-          actionTile(
-            Icons.handshake_outlined,
-            '和家长聊聊预支',
-            '看清月供，借款不算积累',
-            () => panel('loans'),
-          ),
-        ],
       ),
     ],
   ];
@@ -1228,6 +1211,22 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     );
   }
 
+  List<String> get visibleQuickIds => QuickTask.names.keys
+      .where(
+        (id) =>
+            s.quickTasks.any((q) => q.id == id && q.enabled) ||
+            s.quickInstance(id) != null,
+      )
+      .toList();
+
+  Iterable<LaborTask> get taskRecords => s.tasks.reversed.where(
+    (t) =>
+        (['paid', 'cancelled'].contains(t.status)) == completedOnly &&
+        (completedOnly ||
+            t.templateId == null ||
+            s.quickInstance(t.templateId!)?.id != t.id),
+  );
+
   Widget quickGrid() => LayoutBuilder(
     builder: (context, size) {
       final count = size.maxWidth >= 650
@@ -1240,7 +1239,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
         spacing: 12,
         runSpacing: 12,
         children: [
-          for (final id in QuickTask.names.keys)
+          for (final id in visibleQuickIds)
             SizedBox(width: width, child: quickCard(id)),
         ],
       );
@@ -1292,6 +1291,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
                       ? '先说好标准与报酬'
                       : '约定 ${Money.format(t?.amount ?? q.amount)} 元',
                 ),
+                small(t?.detail ?? q?.detail ?? ''),
                 const SizedBox(height: 4),
                 Text(
                   label,
@@ -1355,7 +1355,10 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     heading('每一件小事，都算数'),
     small('常做任务现实中完成后点一下。新任务先接下，再按约定完成。'),
     const SizedBox(height: 16),
-    quickGrid(),
+    if (visibleQuickIds.isNotEmpty)
+      quickGrid()
+    else
+      card(small('还没有约好的常做任务，先和家长一起约好标准与报酬。')),
     heading('我的任务记录'),
     Wrap(
       spacing: 8,
@@ -1373,11 +1376,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
       ],
     ),
     const SizedBox(height: 12),
-    if (s.tasks
-        .where(
-          (t) => (['paid', 'cancelled'].contains(t.status)) == completedOnly,
-        )
-        .isEmpty)
+    if (taskRecords.isEmpty)
       card(
         small(
           completedOnly
@@ -1385,9 +1384,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
               : '今天的常做任务在上方。家长也可以约一份临时小任务。',
         ),
       ),
-    for (final t in s.tasks.reversed.where(
-      (t) => (['paid', 'cancelled'].contains(t.status)) == completedOnly,
-    ))
+    for (final t in taskRecords)
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: card(
@@ -1415,21 +1412,29 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
               if (t.feedback.isNotEmpty)
                 Text('家长的小提醒：${t.feedback}', style: TextStyle(color: p.brand)),
               if (t.status == 'available' && t.templateId == null)
-                TextButton(
+                FilledButton(
                   key: Key('accept-${t.id}'),
                   onPressed: c.busy ? null : () => run('accept', [t.id]),
                   child: const Text('接下这个任务'),
-                )
-              else
-                TextButton(
-                  key: Key('detail-${t.id}'),
-                  onPressed: () => taskDetail(t),
-                  child: Text(
-                    ['accepted', 'needsWork'].contains(t.status)
-                        ? '查看要求，做好后提交 ›'
-                        : '查看本次状态 ›',
-                  ),
                 ),
+              if (['accepted', 'needsWork'].contains(t.status))
+                FilledButton(
+                  key: Key('submit-${t.id}'),
+                  onPressed: c.busy
+                      ? null
+                      : () => run(
+                          t.templateId == null ? 'submit' : 'quickSubmit',
+                          [t.templateId ?? t.id],
+                        ),
+                  child: const Text('我做好了，提交检查'),
+                ),
+              if (t.status == 'submitted') small('等待家长检查'),
+              if (t.status == 'confirmed') small('等待家长兑现报酬'),
+              TextButton(
+                key: Key('detail-${t.id}'),
+                onPressed: () => taskDetail(t),
+                child: Text(t.status == 'needsWork' ? '查看反馈' : '查看要求与记录'),
+              ),
             ],
           ),
         ),

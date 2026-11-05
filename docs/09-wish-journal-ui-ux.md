@@ -6,7 +6,7 @@ Six production pages use Flutter/Drift. Local UI does not display fake cloud del
 
 | Role | Page | Content |
 |---|---|---|
-| Child | My wishes | Primary wish, confirmed accumulation, target/gap, queue, five quick tasks |
+| Child | My wishes | Primary wish, confirmed accumulation, target/gap, queue, at most one concrete rework hint |
 | Child | My tasks | Accept/submit, waiting, withdraw, feedback, resubmit, history |
 | Child | My pocket money | Available cash, holdings, pending withdrawal, planned debt, ledger; secondary finance/advance entry |
 | Parent | Pending review | Selected child, original standards, checking, actual payment |
@@ -18,6 +18,8 @@ Each role has three main destinations. Use a sidebar when both dimensions allow 
 ## Frequent child actions
 
 Finish real work -> tap the whole dishes/mopping/toys/vegetables/learning card -> wait for parent checking. Withdraw before checking. Repeated taps show state rather than creating income. Allow at most one instance per child/template/day; preserve pending instances across dates.
+
+The complete task area lives in Tasks. Show configured recurring agreements and existing instances, including paused or prior-day promises; unconfigured templates use a shared empty state. Accepted temporary tasks can submit directly from their cards. Each child/role/destination retains its own scroll context. The wish home has no generic duplicate task, investment, or advance navigation; a concrete feedback hint may open its exact task.
 
 New wishes specify type, name, and amount. Validation preserves input. Gift and savings goals have different meanings. Queued wishes do not copy balances. Expected returns and advances never fill savings progress. Choose the next primary wish explicitly.
 

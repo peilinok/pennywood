@@ -7,7 +7,7 @@ The app's labels remain in Simplified Chinese. The English names below describe 
 1. Choose Create our family / Start from zero. Enter two child names and a 6-12 digit parent passcode. Real balances, budget, and rate start at zero; no default paid tasks or wishes exist.
 2. Create a gift wish or savings goal. Choose one primary wish and queue the rest.
 3. Unlock the parent area. In Family agreements, set family-wide standards/pay once for all children or agree on a temporary task. Agree first, perform real work afterward.
-4. After finishing, the child taps the task icon to submit. Withdraw before checking if needed. Read specific feedback and resubmit after improvement.
+4. After finishing, the child opens Tasks and taps the agreed recurring task, or directly submits an accepted temporary task. Withdraw before checking if needed. Read specific feedback and resubmit after improvement; the wish home can point to one concrete reminder. Paused agreements retain existing instances, including prior-day pending work.
 5. The parent checks, then separately confirms actual delivery or reserved custody and pays. Only now are cash and wish progress credited.
 6. Children have independent tasks, wishes, and ledgers. Leaving parent space, switching child, or leaving the foreground relocks access and clears secret form input.
 

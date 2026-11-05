@@ -134,6 +134,8 @@ void main() {
         MaterialApp(theme: paperTheme(Brightness.light), home: WishHome(c)),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('我的任务'));
+      await tester.pumpAndSettle();
       final task = find.byKey(const Key('quick-dishes'));
       await tester.ensureVisible(task);
       // Sliver hit coordinates update after layout on the next frame.

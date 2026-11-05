@@ -109,6 +109,7 @@ void main() {
     'Quick-task semantics submit or show status without crediting income',
     (tester) async {
       await check(tester, const Size(402, 874), () async {
+        await activate(tester, find.text('我的任务'));
         final task = find.byKey(const Key('quick-dishes'));
         await tester.ensureVisible(task);
         await tester.pumpAndSettle();
@@ -135,7 +136,8 @@ void main() {
     'Savings-path entries expose button roles and open through semantic activation',
     (tester) async {
       await check(tester, const Size(1194, 834), () async {
-        final entry = find.text('让已有零钱慢慢长大');
+        await activate(tester, find.text('我的零钱'));
+        final entry = find.text('存入与分红');
         await tester.ensureVisible(entry);
         await tester.pumpAndSettle();
         expect(tester.getSemantics(entry), containsSemantics(isButton: true));
@@ -245,6 +247,7 @@ void main() {
         }
 
         expect(scrollNode().label, '我的心愿内容');
+        await activate(tester, find.text('我的任务'));
         final task = find.byKey(const Key('quick-dishes'));
         await tester.ensureVisible(task);
         await tester.pumpAndSettle();
