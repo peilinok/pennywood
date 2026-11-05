@@ -19,6 +19,8 @@ Deposits move cash to holdings. Parents must agree to yields and fund the budget
 
 A savings milestone does not debit money. A parent verifies gift receipt and links delivered withdrawals and actually funded principal totaling the purchase cost. Do not debit again. Debt remains separate.
 
+Tap the primary wish card to open its detail, or use Other wishes for the queue/history. Editing is a separate page and returns to the same detail. A child can propose an advance from a gift detail with that wish explicitly selected. The parent records actual gift receipt from the parent's wish detail; the child sees the corresponding explanation instead of an action that cannot run.
+
 ## Shared terms, investments, and classroom
 
 Family agreements apply to every child; submitted/accepted tasks retain their saved standards and pay. Temporary tasks, real task completions, budgets, wishes, consent, and balances remain child-specific. From Family agreements, open finance management: closing that nested dialog keeps the surrounding parent session unlocked. Profile changes, leaving parent space, and backgrounding still lock it.

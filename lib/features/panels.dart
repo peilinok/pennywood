@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../app/controller.dart';
+import '../app/detail_page.dart';
 import '../app/paper_theme.dart';
 import '../app/screens.dart' show field, tell, userMessage;
 import '../domain/engine.dart';
@@ -15,6 +16,35 @@ int months(String value) {
   require(n != null && n >= 1 && n <= 12, '期数请填写 1–12 之间的整数');
   return n!;
 }
+
+Future<void> proposeAdvance(
+  BuildContext context,
+  TownController c,
+  Wish wish,
+) => Navigator.of(context).push<void>(
+  MaterialPageRoute(
+    builder: (_) => BookForm(
+      '和家长商量预支 · ${c.account.name}',
+      [
+        ('购买用途', wish.name),
+        ('预支金额（元）', '60'),
+        ('偿还期数（月）', '3'),
+        ('首次还款日 YYYY-MM-DD', Day.month(c.account.date, 1)),
+      ],
+      asPage: true,
+      initialWish: wish.id,
+      wishes: [wish],
+      note: '先提出想法，家长会给出最终条件。你接受并由家长实际垫付后才生效；预支不进入零钱，也不算攒够。',
+      onSubmit: (data) => c.perform('loanRequest', [
+        data[0],
+        Money.parse(data[1]),
+        months(data[2]),
+        data[3],
+        data[4],
+      ]),
+    ),
+  ),
+);
 
 class TownPanel extends StatefulWidget {
   const TownPanel(
@@ -1007,12 +1037,16 @@ class BookForm extends StatefulWidget {
     this.wishes,
     this.onSubmit,
     this.submitLabel,
+    this.asPage = false,
+    this.initialWish = '',
     super.key,
   });
   final String title;
   final List<(String, String)> fields;
   final String? note;
   final String? submitLabel;
+  final bool asPage;
+  final String initialWish;
   final String? distribution;
   final List<Wish>? wishes;
   final Future<void> Function(List<String>)? onSubmit;
@@ -1022,7 +1056,7 @@ class BookForm extends StatefulWidget {
 
 class _BookFormState extends State<BookForm> {
   late String? distribution = widget.distribution;
-  String wish = '';
+  late String wish = widget.initialWish;
   String? error;
   bool saving = false;
   final form = GlobalKey<FormState>();
@@ -1040,7 +1074,8 @@ class _BookFormState extends State<BookForm> {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !saving,
-    child: AlertDialog(
+    child: FormSurface(
+      asPage: widget.asPage,
       title: Text(widget.title),
       content: SizedBox(
         width: 460,
@@ -1142,10 +1177,11 @@ class _BookFormState extends State<BookForm> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: saving ? null : () => Navigator.pop(context),
-          child: const Text('返回'),
-        ),
+        if (!widget.asPage)
+          TextButton(
+            onPressed: saving ? null : () => Navigator.pop(context),
+            child: const Text('返回'),
+          ),
         FilledButton(
           key: const Key('book-continue'),
           onPressed: saving

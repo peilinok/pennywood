@@ -23,6 +23,8 @@ The complete task area lives in Tasks. Show configured recurring agreements and 
 
 New wishes specify type, name, and amount. Validation preserves input. Gift and savings goals have different meanings. Queued wishes do not copy balances. Expected returns and advances never fill savings progress. Choose the next primary wish explicitly.
 
+The complete primary card opens its detail page while the monetary summary keeps independent semantics. Other wishes -> detail -> edit uses sequential pages; saving/cancelling returns to the originating detail/list, not the home. Gift receipt is a parent-only page; children see an explanation and can propose an explicitly linked advance from the gift detail. Existing loans and all final-condition/funding rules remain unchanged.
+
 Feedback highlights specific effort and actual changes. No streak resets, leaderboards, expiring rewards, or coin floods. Long-term child preference still needs real testing.
 
 ## Parent confirmation

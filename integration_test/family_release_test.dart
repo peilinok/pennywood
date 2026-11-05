@@ -25,7 +25,7 @@ void main() {
       }
 
       Future<void> tap(Finder finder) async {
-        await until(() => finder.evaluate().isNotEmpty);
+        await until(() => finder.evaluate().length == 1);
         await tester.ensureVisible(finder);
         await tester.pump(const Duration(milliseconds: 300));
         await tester.tap(finder);
@@ -174,8 +174,11 @@ void main() {
         c.account.requests.every((r) => r.wishId == wish && r.usedForGift),
         isTrue,
       );
+      await until(() => find.byType(GiftReceipt).evaluate().isEmpty);
+      await until(() => find.byType(BackButton).evaluate().length == 1);
       await shot('04-receipt-and-debt');
-      await tap(find.text('返回'));
+      await tap(find.byType(BackButton));
+      await tester.pump(const Duration(milliseconds: 400));
 
       final directory = await getApplicationSupportDirectory();
       final backups = FamilyBackup(service.db, service.auth);

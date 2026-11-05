@@ -320,7 +320,7 @@ void main() {
       );
       tester.view.resetViewInsets();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('返回'));
+      await tester.pageBack();
       await tester.pumpAndSettle();
       expect(c.account.wishes, isEmpty);
       expect(c.account.wallet, 200);
