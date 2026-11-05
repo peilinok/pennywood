@@ -90,7 +90,7 @@ void main() {
 
       await key('parent-entry');
       await unlock();
-      await tap(find.text('家庭约定'));
+      await tap(find.text('家庭'));
       await key('configure-dishes');
       await input('action-field-0', '洗净自己的餐具，擦干水槽边的水');
       await input('action-field-1', '2');

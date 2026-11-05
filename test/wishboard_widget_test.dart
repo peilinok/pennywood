@@ -204,7 +204,7 @@ void main() {
             await tester.tap(find.byKey(const Key('parent-entry')));
             await tester.runAsync(() => c.unlock('719385'));
             await tester.pumpAndSettle();
-            for (final label in ['待确认', '孩子与心愿', '家庭约定']) {
+            for (final label in ['待办', '孩子', '家庭']) {
               await tester.tap(find.text(label));
               await tester.pumpAndSettle();
               expect(

@@ -91,7 +91,7 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await hideKeyboard();
   await key('unlock-parent');
   await until(() => c.parent != null);
-  await tap(find.text('家庭约定'));
+  await tap(find.text('家庭'));
   await key('configure-dishes');
   await input('action-field-0', '洗净餐具并归位');
   await input('action-field-1', '2');
@@ -99,12 +99,13 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await key('action-save');
   await until(() => c.account.quickTasks.first.amount == 200);
   expect((await svc.db.load('real', 'first')).quickTasks.first.amount, 200);
-  await tap(find.text('管理收益预算、领取和预支'));
+  await tap(find.text('孩子'));
   await key('edit-child-budget');
   await input('book-field-0', '100');
   await hideKeyboard();
   await key('book-continue');
   await until(() => c.account.budget == 10000);
+  await tap(find.text('家庭'));
   await key('edit-product-rates');
   for (final entry in ['1', '5', '3'].asMap().entries) {
     await input('book-field-${entry.key}', entry.value);
@@ -112,13 +113,16 @@ Future<void> verifyExperience(WidgetTester tester) async {
   await hideKeyboard();
   await key('book-continue');
   await until(() => c.account.rateFor('annual') == 500);
+  await tap(find.text('孩子'));
   await key('market-permission');
   await key('confirm-action');
   await until(() => c.account.marketEnabled);
   await shot('parent-terms');
-  await key('close-panel');
+  await key('edit-child-budget');
+  await tap(find.byType(BackButton));
+  await tester.pump(const Duration(milliseconds: 400));
   expect(c.parent, isNotNull);
-  for (final label in ['待确认', '孩子与心愿', '家庭约定']) {
+  for (final label in ['待办', '孩子', '家庭']) {
     await tap(find.text(label));
     expect(find.byKey(const Key('unlock-parent')), findsNothing);
   }

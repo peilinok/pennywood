@@ -322,9 +322,9 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
 
   List<(String, IconData)> get destinations => parentMode
       ? [
-          ('待确认', Icons.fact_check_outlined),
-          ('孩子与心愿', Icons.favorite_border),
-          ('家庭约定', Icons.tune),
+          ('待办', Icons.fact_check_outlined),
+          ('孩子', Icons.favorite_border),
+          ('家庭', Icons.tune),
         ]
       : [
           ('我的心愿', Icons.card_giftcard),
@@ -600,7 +600,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
     _ => wishesPage(),
   };
   List<Widget> parentPage() => switch (page) {
-    1 => wishesPage(parent: true),
+    1 => childSettingsPage(),
     2 => agreementsPage(),
     _ => inboxPage(),
   };
@@ -663,17 +663,7 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
           ],
         ),
       ),
-    if (parent) ...[
-      heading('孩子的零钱安排'),
-      stats(),
-      const SizedBox(height: 12),
-      small('切换孩子后需重新解锁。两个孩子的心愿、任务与账本独立。'),
-      TextButton.icon(
-        onPressed: profiles,
-        icon: const Icon(Icons.switch_account_outlined),
-        label: const Text('选择另一个孩子'),
-      ),
-    ] else if (s.tasks.any((t) => t.status == 'needsWork')) ...[
+    if (!parent && s.tasks.any((t) => t.status == 'needsWork')) ...[
       const SizedBox(height: 20),
       card(
         ListTile(
@@ -1797,7 +1787,10 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            small('${pending.length} 件劳动或学习待处理。检查通过和实际兑现分两步。'),
+            Text(
+              '${pending.length + s.requests.where((r) => r.status == 'pending').length + s.loans.where((l) => ['pending', 'approved'].contains(l.status)).length} 件待办',
+            ),
+            small('检查通过和实际兑现分两步。正在管理${s.name}。'),
             const SizedBox(height: 12),
             tag('本机家庭 · 双孩独立账本', done: true),
           ],
@@ -1858,17 +1851,78 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
             ),
           ),
         ),
-      heading('领取、预支与其他约定'),
-      small(
-        '待实际领取 ${s.requests.where((r) => r.status == 'pending').length} 笔 · 预支待处理 ${s.loans.where((l) => ['pending', 'offered', 'approved'].contains(l.status)).length} 笔',
-      ),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: OutlinedButton(
-          onPressed: () => panel('parent'),
-          child: const Text('管理领取、预支和收益预算'),
+      if (s.requests.any((r) => r.status == 'pending')) heading('待实际交付'),
+      for (final r in s.requests.where((r) => r.status == 'pending'))
+        card(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${r.purpose} · ¥${Money.format(r.amount)}'),
+              if (r.wishId != null)
+                small(
+                  '心愿：${s.wishes.firstWhere((w) => w.id == r.wishId).name}',
+                ),
+              FilledButton(
+                key: Key('deliver-${r.id}'),
+                onPressed: () => confirmParent(
+                  '确认钱已实际交付给孩子？',
+                  '${s.name} · ¥${Money.format(r.amount)} · ${r.purpose}。实际交付后从账户资产减少，不能重复交付。',
+                  'payRequest',
+                  [r.id],
+                ),
+                child: const Text('确认实际交付'),
+              ),
+            ],
+          ),
         ),
-      ),
+      if (s.loans.any(
+        (l) => ['pending', 'approved', 'offered'].contains(l.status),
+      ))
+        heading('预支事项'),
+      for (final l in s.loans.where(
+        (l) => ['pending', 'approved', 'offered'].contains(l.status),
+      ))
+        card(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${l.item} · ¥${Money.format(l.amount)}'),
+              if (l.status == 'offered') const Text('等待孩子阅读并接受'),
+              if (l.status == 'pending')
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton(
+                      key: Key('offer-${l.id}'),
+                      onPressed: () => offerLoan(l),
+                      child: const Text('提出最终条件'),
+                    ),
+                    TextButton(
+                      onPressed: () => confirmParent(
+                        '暂不接受这份提议？',
+                        '${l.item}，不产生欠款。',
+                        'rejectLoan',
+                        [l.id],
+                      ),
+                      child: const Text('暂不接受'),
+                    ),
+                  ],
+                ),
+              if (l.status == 'approved')
+                FilledButton(
+                  key: Key('fund-${l.id}'),
+                  onPressed: () => confirmParent(
+                    '家长已实际垫付？',
+                    '确认已为${s.name}垫付 ¥${Money.format(l.amount)} 购买${l.item}。此后月供生效；垫付款不进入孩子钱包或劳动收入。',
+                    'fundLoan',
+                    [l.id],
+                  ),
+                  child: const Text('确认已实际垫付购买'),
+                ),
+            ],
+          ),
+        ),
     ];
   }
 
@@ -1947,6 +2001,119 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
           ),
         ),
       ),
+    heading('全家共用的产品利率'),
+    for (final product in Product.all.values.where((p) => !p.market))
+      Text(
+        '${product.name} · ${product.days} 天 · 年化 ${(s.rateFor(product.id) / 100).toStringAsFixed(2)}%',
+      ),
+    Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton(
+        key: const Key('edit-product-rates'),
+        onPressed: editRates,
+        child: const Text('分别设置产品利率'),
+      ),
+    ),
+    const SizedBox(height: 20),
+    Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton.icon(
+        key: const Key('family-data'),
+        onPressed: () => showDialog<void>(
+          context: context,
+          builder: (_) => FamilySettings(c),
+        ),
+        icon: const Icon(Icons.backup_outlined),
+        label: const Text('备份、恢复与家长口令'),
+      ),
+    ),
+    if (c.demo) ...[
+      heading('独立示例日期'),
+      for (final days in [30, 90, 365])
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton(
+            onPressed: () async {
+              try {
+                await c.advanceDemo(days);
+              } catch (e) {
+                if (mounted) tell(context, e);
+              }
+            },
+            child: Text('示例前进 $days 天'),
+          ),
+        ),
+    ],
+    small('亲子互通：当前为本机存档，尚未接入 iCloud。换设备不会自动出现本机记录。'),
+  ];
+  List<Widget> childSettingsPage() => [
+    ...wishesPage(parent: true),
+    heading('${s.name}的账目'),
+    stats(),
+    TextButton(
+      onPressed: () => Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => DetailPage(
+            title: Text('${s.name}的全部记录'),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  for (final l in s.ledger.reversed)
+                    ListTile(
+                      title: Text(l.title),
+                      subtitle: Text('${l.date} · ${l.reference}'),
+                      trailing: Text('¥${Money.format(l.amount)}'),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      child: const Text('查看孩子账目'),
+    ),
+    heading('${s.name}的收益预算'),
+    card(
+      Text(
+        '阶段预算 ¥${Money.format(s.budget)}\n已结算固定收益 ¥${Money.format(s.bonusEarned)} · 波动收益支出 ¥${Money.format(s.marketSpent)}\n承诺预留 ¥${Money.format(s.reserved)} · 可用 ¥${Money.format(s.freeBudget)}',
+      ),
+    ),
+    Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton(
+        key: const Key('edit-child-budget'),
+        onPressed: editBudget,
+        child: const Text('调整收益预算'),
+      ),
+    ),
+    heading('${s.name}的波动投资权限'),
+    small(
+      '现实零钱会记涨跌：低波最多亏损 10%、收益 5%；高波最多亏损 50%、收益 20%。每笔最高收益预留本孩子预算；亏损不会补回预算。',
+    ),
+    Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton(
+        key: const Key('market-permission'),
+        onPressed: () => confirmParent(
+          s.marketEnabled ? '暂停新存入？' : '和孩子一起确认亏损风险',
+          s.marketEnabled
+              ? '已有持有继续沿用原条款，仍可取回。'
+              : '${s.name}使用现实零钱，亏损会实际减少积累；高波一笔最多损失一半本金。收益由家长预算承担。这是家庭教学行情，并非真实基金或纳指。',
+          'marketPermission',
+          [!s.marketEnabled],
+        ),
+        child: Text(s.marketEnabled ? '暂停新波动投资' : '家长允许波动投资'),
+      ),
+    ),
+    heading('孩子资料'),
+    Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton(
+        key: const Key('edit-child-name'),
+        onPressed: editName,
+        child: Text('修改${s.name}的称呼'),
+      ),
+    ),
     heading('额外的小任务'),
     Align(
       alignment: Alignment.centerLeft,
@@ -2010,30 +2177,105 @@ class _WishHomeState extends State<WishHome> with WidgetsBindingObserver {
           ),
         ),
       ),
-    heading('收益与预支'),
-    small('收益由家长按事先约定与预算承担。预支需孩子阅读条件、家长实际垫付后才生效。'),
-    Align(
-      alignment: Alignment.centerLeft,
-      child: OutlinedButton(
-        onPressed: () => panel('parent'),
-        child: const Text('管理收益预算、领取和预支'),
-      ),
-    ),
-    const SizedBox(height: 20),
-    Align(
-      alignment: Alignment.centerLeft,
-      child: OutlinedButton.icon(
-        key: const Key('family-data'),
-        onPressed: () => showDialog<void>(
-          context: context,
-          builder: (_) => FamilySettings(c),
+
+    if (s.loans.isNotEmpty) heading('预支记录'),
+    for (final l in s.loans.reversed)
+      ListTile(
+        title: Text(l.item),
+        subtitle: Text(
+          '本金 ¥${Money.format(l.amount)} · 计划余额 ¥${Money.format(l.balance)}',
         ),
-        icon: const Icon(Icons.backup_outlined),
-        label: const Text('备份、恢复与家长口令'),
+        onTap: () => finance('parent-loans', recordId: l.id),
+      ),
+  ];
+
+  Future<void> book(
+    String title,
+    List<(String, String)> fields,
+    String note,
+    Future<void> Function(List<String>) save,
+  ) => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => BookForm(
+        title,
+        fields,
+        asPage: true,
+        note: note,
+        onSubmit: save,
+        submitLabel: '保存约定',
       ),
     ),
-    small('亲子互通：当前为本机存档，尚未接入 iCloud。换设备不会自动出现本机记录。'),
-  ];
+  );
+
+  Future<void> editBudget() => book(
+    '${s.name}的收益预算',
+    [('阶段收益总预算（元）', Money.format(s.budget))],
+    '预算仅属于${s.name}，不能低于已结算支出和已有承诺预留之和；降低预算不会改变已有承诺。',
+    (v) => c.perform('settings', [Money.parse(v[0]), s.name]),
+  );
+  Future<void> editName() => book(
+    '孩子资料 · ${s.name}',
+    [('孩子称呼', s.name)],
+    '只修改称呼，账目、预算与历史承诺保留。',
+    (v) => c.perform('settings', [s.budget, v[0]]),
+  );
+  Future<void> editRates() => book(
+    '全家共用 · 各产品年化',
+    [
+      for (final product in Product.all.values.where((p) => !p.market))
+        (
+          '${product.name}（%）',
+          (s.rateFor(product.id) / 100).toStringAsFixed(2),
+        ),
+    ],
+    '每项 0%–10%，全家共用。已有持有沿用原条款；只改一种产品不影响其他产品续期。',
+    (v) =>
+        c.perform('familyRates', [for (final value in v) Money.parse(value)]),
+  );
+  Future<void> offerLoan(Loan l) => book(
+    '家长提出最终条件 · ${l.item}',
+    [
+      ('偿还期数（月）', '${l.months}'),
+      ('首次还款日 YYYY-MM-DD', l.first),
+      ('家庭约定年利率（%，可为 0）', (l.rateBps / 100).toStringAsFixed(2)),
+    ],
+    '1–12 个月，0%–12% 年利率。等额本金、按月单利，分位余数归最后一期。孩子接受后等待实际垫付，生效后固定。',
+    (v) =>
+        c.perform('offerLoan', [l.id, months(v[0]), v[1], Money.parse(v[2])]),
+  );
+
+  Future<void> confirmParent(
+    String title,
+    String note,
+    String action,
+    List<Object?> args,
+  ) => showDialog<void>(
+    context: context,
+    builder: (context) => AnimatedBuilder(
+      animation: c,
+      builder: (_, _) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(child: Text(note)),
+        actions: [
+          TextButton(
+            onPressed: c.busy ? null : () => Navigator.pop(context),
+            child: const Text('再想想'),
+          ),
+          FilledButton(
+            key: const Key('confirm-action'),
+            onPressed: c.busy || c.parent == null
+                ? null
+                : () async {
+                    if (await run(action, args) && context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
+            child: Text(c.busy ? '正在保存…' : '确认'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 // The form owns input/errors so reflow and validation failures preserve the child input.

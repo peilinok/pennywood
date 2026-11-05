@@ -36,19 +36,20 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(theme: paperTheme(Brightness.light), home: WishHome(c)),
       );
+      addTearDown(() => tester.pumpWidget(const SizedBox()));
       await tester.tap(find.byKey(const Key('parent-entry')));
       await tester.runAsync(() => c.unlock('719385'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('家庭约定'));
+      await tester.tap(find.text('家庭'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('管理收益预算、领取和预支'));
+      await tester.ensureVisible(find.byKey(const Key('edit-product-rates')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('管理收益预算、领取和预支'));
+      await tester.tap(find.byKey(const Key('edit-product-rates')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('close-panel')));
+      await tester.pageBack();
       await tester.pumpAndSettle();
       expect(c.parent, isNotNull);
-      for (final label in ['待确认', '孩子与心愿', '家庭约定']) {
+      for (final label in ['待办', '孩子', '家庭']) {
         await tester.tap(find.text(label));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('unlock-parent')), findsNothing);
@@ -85,13 +86,15 @@ void main() {
   testWidgets(
     'Invalid product rates retain the form and values until a persisted correction',
     (tester) async {
-      await tester.runAsync(() => c.unlock('719385'));
       await tester.pumpWidget(
-        MaterialApp(
-          theme: paperTheme(Brightness.light),
-          home: Scaffold(body: TownPanel(c, 'parent')),
-        ),
+        MaterialApp(theme: paperTheme(Brightness.light), home: WishHome(c)),
       );
+      addTearDown(() => tester.pumpWidget(const SizedBox()));
+      await tester.tap(find.byKey(const Key('parent-entry')));
+      await tester.runAsync(() => c.unlock('719385'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('家庭'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('edit-product-rates')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('edit-product-rates')));
