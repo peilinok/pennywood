@@ -1,12 +1,16 @@
 # Native Validation Record
 
-Public source: 0.3.6+10, schema 5. Publish sanitized summaries only. Device identifiers, personal names, raw logs, xcresult, sandboxes, screenshots, and signed packages stay local and out of Git history.
+Historical source records start at 0.3.6+10/schema5; the current candidate is 0.5.0+12/schema6. Publish sanitized summaries only. Device identifiers, personal names, raw logs, xcresult, sandboxes, screenshots, and signed packages stay local and out of Git history.
+
+## Simplification candidate
+
+Candidate 0.5.0+12 retains schema6 and unchanged accounting/storage rules. The [S1-S5 plan](27-interface-simplification.md) and [sanitized validation summary](../evidence/public/interface-simplification-validation.json) identify the changed navigation, host checks and isolated simulator journeys. Required family targets include finance and independent-process replay checks. Exact-head hosted CI belongs to each PR. Physical-device, human child/VoiceOver and current system-window acceptance remain separate and pending; historical results below do not establish them.
 
 ## Version 0.3.6
 
 Before the review fixes, locked dependencies, formatting, static analysis, and 98 host tests passed. Two regressions were observed failing before repair: secret inputs must clear/conceal on leaving the foreground while ordinary inputs remain; onboarding must explain generating a recovery code. One lifecycle test was added and the existing onboarding assertion strengthened, bringing the host total to 99.
 
-See the [public summary](../evidence/public/validation-summary.json) for final checks, source-tree verification, simulator builds, and startup scope. Simulator smoke checks only the production entry, not the entire business flow. Physical devices were not reinstalled/retested for 0.3.6 and retain the earlier 0.3.5 production version.
+See the [historical public summary](../evidence/public/validation-summary.json) for that candidate's checks, source-tree verification, simulator builds, and startup scope. Its simulator smoke checked only the production entry, not the entire business flow. That 0.3.6 validation did not reinstall or retest physical devices; it is not a statement of their currently installed version.
 
 Repository-language maintenance translates documentation, comments, test descriptions, and tooling without changing production Chinese copy, accounting, or schema. Its own check results are recorded separately in the public summary.
 
@@ -30,7 +34,7 @@ Each physical test ledger ended with child one at 200 cents and child two at zer
 
 `test/` contains rule, database, and widget tests. Wish integration entries are `integration_test/wishboard_test.dart`, `wishboard_restart_test.dart`, and `wishboard_finance_test.dart`. Family/recovery entries are `family_release_test.dart` and `family_release_restart_test.dart`. They use isolated databases and Keychain prefixes; never clear the production database.
 
-See [README](../README.md) for running. Keep `--keep-app-running` when using `flutter drive`: its default cleanup may uninstall the app. Restore `lib/main.dart` after integration testing. Legacy town tests remain references, not wish-home acceptance.
+See [README](../README.md) for running. Keep `--keep-app-running` when using `flutter drive`: its default cleanup may uninstall the app. Restore `lib/main.dart` after integration testing. Legacy finance acceptance now calls the shared journal journey with its original real/demo isolation assertions. The former flow/restart and internal scene tests use isolated verification files; scene testing mounts the retained harness directly. No production town route is exposed. The required family flow also runs deposits, both dividend choices, active installment/payoff, withdrawals, hypotheses and an independent finance restart.
 
 ## Pending
 

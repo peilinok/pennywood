@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'family_release_support.dart';
 import 'experience_acceptance.dart';
+import 'wishboard_finance_test.dart' show verifyFinanceRestart;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -43,5 +44,9 @@ void main() {
   testWidgets(
     'A fresh process retains schema6 investments, family terms, losses, and operation IDs',
     verifyExperienceRestart,
+  );
+  testWidgets(
+    'A fresh process retains dividends, full repayment, withdrawals, and real/demo isolation',
+    verifyFinanceRestart,
   );
 }

@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:pennywood/app/screens.dart';
 import 'package:pennywood/game/town_game.dart';
-import 'package:pennywood/main.dart' as app;
+import 'package:pennywood/app/controller.dart';
+import 'package:pennywood/features/wish_home.dart';
+import 'wishboard_support.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +14,7 @@ void main() {
   testWidgets(
     'Camera, atmosphere, custom tasks, and business forms survive window changes',
     (tester) async {
-      await app.main();
+      final service = await startWishboard(scenario: 'legacy-flow');
       Future<void> until(bool Function() condition) async {
         for (var i = 0; i < 100; i++) {
           await tester.pump(const Duration(milliseconds: 100));
@@ -37,9 +39,11 @@ void main() {
         await tester.pump();
       }
 
-      await tap(find.text('回到我们的家庭'));
-      await until(() => find.byType(TownHome).evaluate().isNotEmpty);
-      final c = tester.widget<TownHome>(find.byType(TownHome)).controller;
+      await until(() => find.byType(WishHome).evaluate().isNotEmpty);
+      final c = TownController(service, 'real', 'first');
+      await c.load();
+      // Exercise the preserved scene directly, outside the production navigation.
+      await tester.pumpWidget(MaterialApp(home: TownHome(c)));
       final finder = find.byWidgetPredicate((w) => w is GameWidget);
       final game = tester.widget<GameWidget>(finder).game as TownGame;
       await until(() => game.assetsReady);
@@ -101,10 +105,11 @@ void main() {
       await input('parent-pin', '719385');
       await tap(find.byKey(const Key('unlock-parent')));
       await until(() => c.parent != null);
-      await tap(find.text('创建现实劳动委托'));
-      await input('book-field-0', '把抽屉整理好');
-      await input('book-field-1', '6');
-      await input('book-field-2', '铅笔和橡皮分类收好，请家长检查');
+      await tap(find.text('孩子'));
+      await tap(find.byKey(const Key('add-task')));
+      await input('action-field-0', '把抽屉整理好');
+      await input('action-field-2', '6');
+      await input('action-field-1', '铅笔和橡皮分类收好，请家长检查');
       FocusManager.instance.primaryFocus?.unfocus();
       await binding.setSurfaceSize(const Size(844, 390));
       await tester.pump(const Duration(milliseconds: 500));
@@ -114,13 +119,15 @@ void main() {
       await binding.setSurfaceSize(null);
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('铅笔和橡皮分类收好，请家长检查'), findsOneWidget);
-      await tap(find.byKey(const Key('book-continue')));
+      await tap(find.byKey(const Key('action-save')));
       await until(() => c.account.tasks.any((t) => t.name == '把抽屉整理好'));
       final task = c.account.tasks.singleWhere((t) => t.name == '把抽屉整理好');
       expect(task.amount, 600);
       expect(task.status, 'available');
       expect(c.account.wallet, 800);
-      await tap(find.byKey(const Key('close-panel')));
+      await tap(find.byTooltip('更多'));
+      await tap(find.text('返回家庭入口'));
+      await tester.pump(const Duration(milliseconds: 500));
       expect(c.parent, isNull);
       expect(identical(tester.widget<GameWidget>(finder).game, game), true);
       expect(tester.takeException(), isNull);

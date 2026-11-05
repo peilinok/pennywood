@@ -1,14 +1,14 @@
 # Family Release Checklist
 
-Source 0.3.6+10 / schema 5, 2026-11-02. Local use is available; a complete cross-device family release is not delivered. Historical device results are not fresh validation.
+Candidate 0.5.0+12 / schema 6, 2026-11-03. See the [bounded simplification delivery plan](27-interface-simplification.md) and [validation summary](../evidence/public/interface-simplification-validation.json) for exact scope and candidate checks. Local use is available; a complete cross-device family release is not delivered. Historical device results are not fresh validation.
 
 | Requirement | Status | Evidence and remaining scope |
 |---|---|---|
 | Zero onboarding, two children, withdraw/rework/pay once | Implemented; host/simulator verified | Real family has no fixed passcode/balance; 0.3.5 physical core subset passed |
 | Wish lifecycle and separate savings/receipt/debt | Implemented; rules/widgets/integration checked | Multiple withdrawals/advances, no payment reuse |
 | Edit/pause task agreements and retain history | Implemented | New standards/pay cannot overwrite old snapshots |
-| Investments/dividends/budgets/advances/installments/withdrawals | Implemented; rules and earlier simulator integration | 26 cases; not complete current physical regression |
-| Schema 1-4 to 5, restart, transactions, idempotency | Implemented and tested | Normalized storage, pre-migration snapshots, historical 16 tables/ledger retained |
+| Investments/dividends/budgets/advances/installments/withdrawals | Implemented; host and local iPhone/iPad integration/restart verified | 26 cases; final exact-head hosted checks are in each PR; not complete current physical regression |
+| Schema 1-5 to 6, restart, transactions, idempotency | Implemented and tested | Normalized storage, pre-migration snapshots, historical 16 tables/ledger retained |
 | Encrypted backup/recovery, passcode changes, recovery code | Implemented and tested | Wrong password/tampering rejected; pre-restore copy; no credential cloning |
 | 0.3.6 secret protection and recovery copy | Fixed | Regressions failed before repair; final suite passed |
 | Orientations, themes, large text, reduced motion | Widget and historical system evidence | Full physical windows/directions/accessibility pending |

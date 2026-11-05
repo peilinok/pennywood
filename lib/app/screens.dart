@@ -6,7 +6,6 @@ import '../data/service.dart';
 import '../domain/model.dart';
 import '../domain/money.dart';
 import '../game/town_game.dart';
-import '../features/panels.dart';
 import '../features/wish_home.dart';
 import '../features/family_settings.dart';
 import 'controller.dart';
@@ -39,10 +38,19 @@ class FamilyEntry extends StatefulWidget {
 
 class _FamilyEntryState extends State<FamilyEntry> {
   late Future<List<Map<String, dynamic>>> families;
+  bool opening = false;
   @override
   void initState() {
     super.initState();
     reload();
+    families.then((rows) {
+      final real = rows.where((r) => r['demo'] == 0).firstOrNull;
+      if (real != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) enter(real);
+        });
+      }
+    }, onError: (Object _, StackTrace _) {});
   }
 
   void reload() {
@@ -50,35 +58,48 @@ class _FamilyEntryState extends State<FamilyEntry> {
   }
 
   Future<void> enter(Map<String, dynamic> family) async {
-    var service = widget.service;
-    if (family['demo'] == 1) {
-      final dates = await service.db.rows(
-        'SELECT MAX(date) AS date FROM children WHERE family_id=?',
-        [family['id']],
-      );
-      final saved = dates.single['date'] as String?;
-      final today = service.clock.today;
-      service = TownService(
-        service.db,
-        service.auth,
-        FixedClock(saved != null && saved.compareTo(today) > 0 ? saved : today),
-      );
-    }
-    final controller = TownController(
-      service,
-      family['id'],
-      family['active_child'],
-    );
+    if (opening) return;
+    setState(() => opening = true);
+    TownController? controller;
     try {
+      var service = widget.service;
+      if (family['demo'] == 1) {
+        final dates = await service.db.rows(
+          'SELECT MAX(date) AS date FROM children WHERE family_id=?',
+          [family['id']],
+        );
+        final saved = dates.single['date'] as String?;
+        final today = service.clock.today;
+        service = TownService(
+          service.db,
+          service.auth,
+          FixedClock(
+            saved != null && saved.compareTo(today) > 0 ? saved : today,
+          ),
+        );
+      }
+      controller = TownController(
+        service,
+        family['id'],
+        family['active_child'],
+      );
       await controller.load();
       if (!mounted) return;
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => WishHome(controller)));
-      controller.dispose();
-      if (mounted) setState(reload);
+      final route = MaterialPageRoute<void>(
+        builder: (_) => WishHome(controller!),
+      );
+      await Navigator.of(context).push<void>(route);
+      await route.completed;
     } catch (e) {
       if (mounted) tell(context, e);
+    } finally {
+      controller?.dispose();
+      if (mounted) {
+        setState(() {
+          opening = false;
+          reload();
+        });
+      }
     }
   }
 
@@ -151,7 +172,7 @@ class _FamilyEntryState extends State<FamilyEntry> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: FilledButton.icon(
-                              onPressed: () => enter(family),
+                              onPressed: opening ? null : () => enter(family),
                               icon: Icon(
                                 family['demo'] == 1
                                     ? Icons.auto_stories
@@ -316,6 +337,7 @@ Widget field(
   ),
 );
 
+// Retained internal scene harness; no production route exposes this retired walk.
 class TownHome extends StatefulWidget {
   const TownHome(this.controller, {super.key});
   final TownController controller;
@@ -401,11 +423,20 @@ class _TownHomeState extends State<TownHome> with WidgetsBindingObserver {
     try {
       await game.stop();
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => TownPanel(c, place),
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => WishHome(
+            c,
+            parentEntry: place == 'parent',
+            initialPage: place == 'tasks'
+                ? 1
+                : place == 'wish'
+                ? 0
+                : 2,
+          ),
+        ),
       );
+      c.lock();
     } catch (e) {
       if (mounted) tell(context, e);
     } finally {

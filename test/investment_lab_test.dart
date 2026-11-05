@@ -7,7 +7,7 @@ import 'package:pennywood/data/auth.dart';
 import 'package:pennywood/data/database.dart';
 import 'package:pennywood/data/service.dart';
 import 'package:pennywood/domain/money.dart';
-import 'package:pennywood/features/panels.dart';
+import 'package:pennywood/features/investment_lab.dart';
 import 'database_service_test.dart' show MemoryCredentials;
 
 void main() {
@@ -48,7 +48,12 @@ void main() {
       ),
       child: child!,
     ),
-    home: Scaffold(body: TownPanel(c, 'lesson')),
+    home: const Scaffold(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+        child: InvestmentLab(),
+      ),
+    ),
   );
 
   testWidgets(

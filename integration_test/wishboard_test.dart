@@ -161,9 +161,12 @@ void main() {
       await until(() => c.child == 'first');
       expect(c.account.wallet, 200);
       expect(c.account.wishes.length, 2);
-      await key('theme-toggle');
+      await tap(find.byTooltip('更多'));
+      await tap(find.text('外观'));
+      await tap(find.text('深色'));
       await shot('09-dark');
-      await key('theme-toggle');
+      await tap(find.text('浅色'));
+      await tap(find.byType(BackButton));
       // Background locking requires a fresh passcode; children cannot reuse parent authority.
       await key('parent-entry');
       await unlock();

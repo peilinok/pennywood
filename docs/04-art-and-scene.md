@@ -1,8 +1,8 @@
-# Optional Town: Art and Scene
+# Retained Town Art and Internal Scene
 
 The selected direction is a soft picture-book palette, isometric diamond lawn, separate buildings, and a squirrel. Pennywood is the current brand; older names in reference artwork are historical.
 
-Use the [complete SVG reference](../assets/svg/town-world-reference.svg) and [layered assets](../assets/README.md). The wish journal is the main entry; the town is an optional walk. Unreviewed original images and old device screenshots are not public assets.
+Use the [complete SVG reference](../assets/svg/town-world-reference.svg) and [layered assets](../assets/README.md). The wish journal is the only production business entry. ADR 0003 retires the standalone walk and duplicated business panels. Keep existing scene rows, archive compatibility, assets and internal navigation/lifecycle tests; no schema conversion or scene reset is needed. The descriptions below document the retained scene harness and historical art, not a second production workflow. Unreviewed original images and old device screenshots are not public assets.
 
 | Place | Appearance | Function |
 |---|---|---|

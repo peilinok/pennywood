@@ -7,7 +7,7 @@
 - Pennywood is a family financial-learning app for children aged 7-10 and their parents.
 - Use Flutter + Flame, pure Dart business rules, and SQLite / Drift.
 - This release targets iPhone and iPad only. Do not create, develop, or validate Android, Web, macOS, or Windows targets.
-- The child entry is the wish journal: wishes, tasks, and pocket money. The Flame town remains an optional walk. The same app provides a parent area and separate child profiles.
+- The child entry is the wish journal: wishes, tasks, and pocket money. The production town entry is retired by ADR 0003; preserve scene data/assets and internal navigation/lifecycle tests. The same app provides a parent area and separate child profiles.
 - iPhone adapts to portrait and both landscape orientations. iPad supports all four orientations and window resizing. Choose a sidebar or bottom navigation from available width and height; preserve page, form, character, and ledger state during layout changes.
 - Current user instructions and docs 08-11 define the product direction. Accounting follows [docs 02](docs/02-accounting-rules.md). Earlier landscape-town home designs and historical prototypes are background only.
 
@@ -27,7 +27,7 @@
 - Keep cash, holdings, frozen withdrawals, debt, and projections separate. Never mix children's accounts.
 - Validate permissions and amounts at the business entry. Save related state, ledger entries, and unique operation IDs in one transaction. Show success only after persistence.
 - HTML, SVG, and JavaScript are design/behavior references, not the production accounting implementation. Use native Flutter / Flame UI.
-- Follow [the design system](design-system/pennywood/MASTER.md) for the wish journal and [scene guidance](docs/04-art-and-scene.md) for the optional town.
+- Follow [the design system](design-system/pennywood/MASTER.md) for the wish journal and [scene guidance](docs/04-art-and-scene.md) for the retained internal scene assets.
 - Real families start with zero balances. Demo families are separate; demo passcodes must never become production credentials.
 
 ## Verification and publication

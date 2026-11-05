@@ -7,6 +7,7 @@ import 'package:pennywood/data/backup.dart';
 import 'package:pennywood/features/wish_home.dart';
 import 'family_release_support.dart';
 import 'experience_acceptance.dart';
+import 'wishboard_finance_test.dart' as finance;
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -226,4 +227,5 @@ void main() {
     'Schema5 upgrade, shared terms, real-money market loss, lessons, and encrypted restore',
     verifyExperience,
   );
+  finance.main(verifyRealIsolation: true);
 }

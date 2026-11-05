@@ -131,7 +131,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: paperTheme(Brightness.light),
-          home: Scaffold(body: TownPanel(c, 'savings')),
+          home: FinancePage(c, 'savings'),
         ),
       );
       final button = find.byKey(const Key('deposit-growth'));
