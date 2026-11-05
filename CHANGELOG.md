@@ -9,6 +9,7 @@ Record user-visible changes and data compatibility in English. Release entries a
 - Focus the wish home on its goal and one concrete feedback hint; keep the complete configured task area in Tasks.
 - Submit accepted temporary tasks directly from their cards, retain paused/cross-day promises, and preserve each child's page scroll when changing tabs or window size.
 - Navigate wishes through list/detail/edit/receipt pages, make the complete primary card tappable, preserve the originating context after editing, and start explicitly linked gift advances from the child's wish detail. Keep amount/progress semantics independently readable and actual gift receipt parent-only.
+- Give money one primary available balance, directly reachable holding/debt records, a recent/full classified ledger, and a direct withdrawal form. Group five plans by fixed/variable terms and confirm deposits once with amount-specific promises and risk; retain invalid input for correction. Consolidate hypothetical growth and weekly contributions in the interactive classroom, separate from actual returns.
 - Retain schema6, authenticated schema4/5/6 backups, existing task/holding promises, and all financial/parent rules. See the [implementation plan](docs/27-interface-simplification.md) and [ADR 0003](docs/adr/0003-wish-journal-simplification.md) for the remaining bounded tasks.
 
 ### Experience candidate 0.4.0+11

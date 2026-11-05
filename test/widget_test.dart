@@ -6,7 +6,7 @@ import 'package:pennywood/data/database.dart';
 import 'package:pennywood/data/service.dart';
 import 'package:pennywood/domain/money.dart';
 import 'package:pennywood/app/controller.dart';
-import 'package:pennywood/features/panels.dart';
+import 'package:pennywood/features/wish_home.dart';
 import 'package:pennywood/main.dart';
 import 'database_service_test.dart' show MemoryCredentials;
 
@@ -27,11 +27,17 @@ void main() {
         await service.createFamily('real', '719385', ['小满', '小禾']);
         await c.load();
       });
+      addTearDown(() => tester.pumpWidget(const SizedBox()));
       c.account.weeklyPlan = Money.maxCents;
       c.account.rateBps = 1000;
-      await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: TownPanel(c, 'growth'))),
-      );
+      await tester.pumpWidget(MaterialApp(home: WishHome(c)));
+      await tester.tap(find.text('我的零钱'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('open-lesson')));
+      await tester.tap(find.byKey(const Key('open-lesson')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('lesson-projection')));
+      await tester.pumpAndSettle();
       final checkbox = find.byType(CheckboxListTile);
       await tester.ensureVisible(checkbox);
       await tester.tap(checkbox);

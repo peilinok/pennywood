@@ -46,16 +46,47 @@ Future<void> proposeAdvance(
   ),
 );
 
+Future<void> requestWithdrawal(
+  BuildContext context,
+  TownController c, {
+  bool asPage = true,
+}) async {
+  final s = c.account;
+  final form = BookForm(
+    '申请实际领取 · ${s.name}',
+    asPage: asPage,
+    [('金额（元）', ''), ('用来做什么', s.goalName)],
+    note: '先从可用零钱转到待领取，仍属于你的资产。家长确认实际交付后才记为已领取。为礼物自付时请选择对应心愿。',
+    wishes: s.wishes.where((w) => w.available && w.kind == 'gift').toList(),
+    onSubmit: (data) =>
+        c.perform('request', [Money.parse(data[0]), data[1], data[2]]),
+  );
+  if (asPage) {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => form));
+  } else {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => form,
+    );
+  }
+}
+
 class TownPanel extends StatefulWidget {
   const TownPanel(
     this.controller,
     this.initial, {
     this.lockOnClose = true,
+    this.asPage = false,
+    this.recordId,
     super.key,
   });
   final TownController controller;
   final String initial;
-  final bool lockOnClose;
+  final bool lockOnClose, asPage;
+  final String? recordId;
   @override
   State<TownPanel> createState() => _TownPanelState();
 }
@@ -202,64 +233,80 @@ class _TownPanelState extends State<TownPanel> {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: c,
-    builder: (context, _) => Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1040),
-        child: SizedBox(
-          width: 1040,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 6, 10, 0),
-                child: Row(
+    builder: (context, _) => widget.asPage
+        ? DetailPage(
+            title: Text('${title(tab)} · ${s.name}'),
+            content: SingleChildScrollView(
+              key: PageStorageKey('${c.child}-$tab-${widget.recordId}'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: content(),
+              ),
+            ),
+          )
+        : Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 12,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: SizedBox(
+                width: 1040,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Text(
-                        '${title(tab)} · ${s.name}',
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 6, 10, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${title(tab)} · ${s.name}',
+                              style: const TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (c.demo) const Chip(label: Text('独立示例')),
+                          IconButton(
+                            key: const Key('close-panel'),
+                            tooltip: '关闭面板',
+                            onPressed: () {
+                              if (widget.initial == 'parent' &&
+                                  widget.lockOnClose) {
+                                c.lock();
+                              }
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
                       ),
                     ),
-                    if (c.demo) const Chip(label: Text('独立示例')),
-                    IconButton(
-                      key: const Key('close-panel'),
-                      tooltip: '关闭面板',
-                      onPressed: () {
-                        if (widget.initial == 'parent' && widget.lockOnClose) {
-                          c.lock();
-                        }
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.close),
+                    if (c.busy) const LinearProgressIndicator(minHeight: 2),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        key: PageStorageKey(tab),
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: content(),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              if (c.busy) const LinearProgressIndicator(minHeight: 2),
-              Flexible(
-                child: SingleChildScrollView(
-                  key: PageStorageKey(tab),
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: content(),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ),
   );
   String title(String id) =>
       const {
         'tasks': '委托小铺',
-        'savings': '储蓄小屋',
+        'savings': '安排零钱',
+        'holding': '持有详情',
         'wish': '愿望工坊',
         'growth': '时光树 · 成长手账',
         'journal': '我的零钱口袋',
@@ -271,6 +318,10 @@ class _TownPanelState extends State<TownPanel> {
   List<Widget> content() => switch (tab) {
     'tasks' => tasks(),
     'savings' => savings(),
+    'holding' => [
+      for (final p in s.positions.where((p) => p.id == widget.recordId))
+        positionCard(p),
+    ],
     'journal' => wallet(),
     'wish' => wish(),
     'growth' => growth(),
@@ -335,155 +386,107 @@ class _TownPanelState extends State<TownPanel> {
     note('家长检查完成和确认报酬兑现是两步。兑现前不会入账，探索小镇也不会发钱。'),
   ];
   List<Widget> savings() => [
-    intro('savings', '我是阿栗。你赚来的钱值得认真安排。预计收益要等到约定日期结算，才成为零钱。'),
     paper(
       Text(
-        '可用零钱 ¥${Money.format(s.wallet)} · 持有本金 ¥${Money.format(s.holding)}\n各产品分别约定利率 · 可用收益预算 ¥${Money.format(s.freeBudget)}',
+        '可用零钱 ¥${Money.format(s.wallet)} · 可用收益预算 ¥${Money.format(s.freeBudget)}',
       ),
     ),
-    Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        for (final p in Product.all.values)
-          SizedBox(
-            width: math.min(245, MediaQuery.sizeOf(context).width - 76),
-            child: paper(
-              Column(
-                children: [
-                  if (p.market)
-                    Icon(
-                      p.id == 'lowVol' ? Icons.ssid_chart : Icons.show_chart,
-                      size: 70,
-                      color: PaperColors.of(context).green,
-                    )
-                  else
-                    SvgPicture.asset(
-                      'assets/svg/tree-annual.svg',
-                      width: 70,
-                      height: 80,
-                    ),
-                  Text(
-                    p.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    '${p.days} 天${p.id == 'dividend' || p.market ? '一期' : '到期'} · ${p.minimum ~/ 100} 元起',
-                  ),
-                  Text(
-                    p.market
-                        ? '非保本 · 最高亏损 ${p.lossCapBps ~/ 100}%'
-                        : '约定年化 ${(s.rateFor(p.id) / 100).toStringAsFixed(2)}%',
-                  ),
-                  if (p.market)
-                    Text(p.id == 'lowVol' ? '小起伏，分红也会变' : '向上探索，途中会回调'),
-                  if (p.market && !s.marketEnabled) const Text('请先和家长一起开启'),
-                  const SizedBox(height: 8),
-                  button(
-                    p.market && !s.marketEnabled ? '等待家长开启' : '了解并存入',
-                    () => deposit(p),
-                    key: 'deposit-${p.id}',
-                    enabled: !p.market || s.marketEnabled,
-                  ),
-                ],
+    for (final market in [false, true]) ...[
+      heading(market ? '会涨会跌' : '固定约定'),
+      if (market) note('使用现实零钱，亏损会减少本金；需要家长事先开启。'),
+      for (final p in Product.all.values.where((p) => p.market == market))
+        paper(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                p.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+              Text('${p.days} 天 · ${p.minimum ~/ 100} 元起'),
+              Text(
+                p.market
+                    ? '非保本 · 最高亏损 ${p.lossCapBps ~/ 100}% · 最高收益 ${p.gainCapBps ~/ 100}%'
+                    : '约定年化 ${(s.rateFor(p.id) / 100).toStringAsFixed(2)}%',
+              ),
+              if (p.market && !s.marketEnabled) const Text('请先和家长一起开启'),
+              button(
+                p.market && !s.marketEnabled ? '等待家长开启' : '了解并存入',
+                () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(builder: (_) => DepositForm(c, p)),
+                ),
+                key: 'deposit-${p.id}',
+                enabled: !p.market || s.marketEnabled,
+              ),
+            ],
+          ),
+        ),
+    ],
+    if (!widget.asPage) ...[
+      heading('我的持有'),
+      for (final p in s.active) positionCard(p),
+      button('产品小课堂', () => setState(() => tab = 'lesson'), key: 'open-lesson'),
+    ],
+    note('家庭教学计划的收益由家长预算承担。已有持有沿用存入时的承诺。'),
+  ];
+  Widget positionCard(Position p) => paper(
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (p.status != 'active') Text('已结算 · ${p.end}'),
+        Text(
+          Product.all[p.product]!.name,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        Text(
+          Product.all[p.product]!.market
+              ? '投入本金 ¥${Money.format(p.principal)} · 参考价值 ¥${Money.format(p.principal + TeachingMarket.profit(p, s.date))}\n${p.start} 至 ${p.end} · 本期最多收益 ¥${Money.format(p.expected)} 已预留\n参考涨跌未入账；到期或取回时结算，可能亏损本金。'
+              : '本金 ¥${Money.format(p.principal)} · 本期年化 ${(p.rateBps / 100).toStringAsFixed(2)}%\n${p.start} 至 ${p.end} · 本期预计收益 ¥${Money.format(p.expected)}\n条款版本 ${p.termsVersion}，已由家长预留本期收益',
+          style: const TextStyle(height: 1.7),
+        ),
+        if (p.status == 'active')
+          Wrap(
+            children: [
+              button('提前取回', () async {
+                final days = Day.difference(p.start, s.date).clamp(0, p.days);
+                final market = Product.all[p.product]!.market;
+                final profit = market
+                    ? TeachingMarket.profit(p, s.date)
+                    : Money.interest(
+                        p.principal,
+                        math.min(10, p.rateBps),
+                        days,
+                      );
+                if (await confirm(
+                  '提前取回这份计划？',
+                  market
+                      ? '投入 ¥${Money.format(p.principal)}，当前涨跌 ¥${Money.format(profit)}。本次实际取回 ¥${Money.format(p.principal + profit)}，亏损会记入账本。'
+                      : '持有 $days 天，以本期利率和 0.10% 中较低者重算，收益 ¥${Money.format(profit)}。本金 ¥${Money.format(p.principal)} 完整取回。',
+                )) {
+                  await run('redeem', [p.id]);
+                }
+              }),
+              if (p.product == 'dividend')
+                button(
+                  '下次：${p.distribution == 'cash' ? '现金分红' : '红利再投'} · 修改',
+                  () async {
+                    final mode = p.distribution == 'cash' ? 'reinvest' : 'cash';
+                    if (await confirm(
+                      '修改下一次分红',
+                      '${mode == 'cash' ? '收益进入零钱，本金按同条件续期' : '本金与收益一起续期'}。每次续期检查预算；利率提出变更或预算不足时，本息回钱包。已结算记录不会修改。',
+                    )) {
+                      await run('distributionMode', [p.id, mode]);
+                    }
+                  },
+                ),
+            ],
           ),
       ],
     ),
-    heading('我的持有'),
-    if (s.active.isEmpty) note('还没有持有计划，先慢慢攒起来。'),
-    for (final p in s.active)
-      paper(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              Product.all[p.product]!.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            Text(
-              Product.all[p.product]!.market
-                  ? '投入本金 ¥${Money.format(p.principal)} · 参考价值 ¥${Money.format(p.principal + TeachingMarket.profit(p, s.date))}\n${p.start} 至 ${p.end} · 本期最多收益 ¥${Money.format(p.expected)} 已预留\n参考涨跌未入账；到期或取回时结算，可能亏损本金。'
-                  : '本金 ¥${Money.format(p.principal)} · 本期年化 ${(p.rateBps / 100).toStringAsFixed(2)}%\n${p.start} 至 ${p.end} · 本期预计收益 ¥${Money.format(p.expected)}\n条款版本 ${p.termsVersion}，已由家长预留本期收益',
-              style: const TextStyle(height: 1.7),
-            ),
-            Wrap(
-              children: [
-                button('提前取回', () async {
-                  final days = Day.difference(p.start, s.date).clamp(0, p.days);
-                  final market = Product.all[p.product]!.market;
-                  final profit = market
-                      ? TeachingMarket.profit(p, s.date)
-                      : Money.interest(
-                          p.principal,
-                          math.min(10, p.rateBps),
-                          days,
-                        );
-                  if (await confirm(
-                    '提前取回这份计划？',
-                    market
-                        ? '投入 ¥${Money.format(p.principal)}，当前涨跌 ¥${Money.format(profit)}。本次实际取回 ¥${Money.format(p.principal + profit)}，亏损会记入账本。'
-                        : '持有 $days 天，以本期利率和 0.10% 中较低者重算，收益 ¥${Money.format(profit)}。本金 ¥${Money.format(p.principal)} 完整取回。',
-                  )) {
-                    await run('redeem', [p.id]);
-                  }
-                }),
-                if (p.product == 'dividend')
-                  button(
-                    '下次：${p.distribution == 'cash' ? '现金分红' : '红利再投'} · 修改',
-                    () async {
-                      final mode = p.distribution == 'cash'
-                          ? 'reinvest'
-                          : 'cash';
-                      if (await confirm(
-                        '修改下一次分红',
-                        '${mode == 'cash' ? '收益进入零钱，本金按同条件续期' : '本金与收益一起续期'}。每次续期检查预算；利率提出变更或预算不足时，本息回钱包。已结算记录不会修改。',
-                      )) {
-                        await run('distributionMode', [p.id, mode]);
-                      }
-                    },
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    button('产品小课堂', () => setState(() => tab = 'lesson'), key: 'open-lesson'),
-    note('这些是家庭教学计划，收益由家长按事先约定和预算承担，不是市场报价。年轮/小树到期自动回钱包；需要本息续存时，可重新确认一笔存入。'),
-  ];
-  Future<void> deposit(Product p) async {
-    final data = await form(
-      '存入${p.name}',
-      [('存入金额（元）', '${p.minimum ~/ 100}')],
-      distribution: p.id == 'dividend' ? s.distribution : null,
-      note: p.market
-          ? '${p.days} 天家庭教学行情，最多亏损 ${p.lossCapBps ~/ 100}%，最多收益 ${p.gainCapBps ~/ 100}%。上涨不是保证，取回会实际记涨跌；没有真实证券交易。'
-          : '${p.days} 天，家庭约定年化 ${(s.rateFor(p.id) / 100).toStringAsFixed(2)}%，条款版本 ${s.versionFor(p.id)}。存入只转移本金。',
-    );
-    if (data == null) return;
-    try {
-      final amount = Money.parse(data[0]);
-      final mode = p.id == 'dividend' ? data[1] : s.distribution;
-      Engine.mode(mode);
-      final profit = p.market
-          ? TeachingMarket.reserve(p.id, amount)
-          : Money.interest(amount, s.rateFor(p.id), p.days);
-      if (await confirm(
-        '确认这次家庭约定',
-        p.market
-            ? '${s.name}投入 ¥${Money.format(amount)} · ${p.days} 天\n最多亏损 ¥${Money.format(Money.rounded(amount, p.lossCapBps, 1, 10000))}；最多收益 ¥${Money.format(profit)}（确认存入时从预算预留）。\n到期本息与涨跌回零钱。家长已允许波动投资，本金不会保证完整返还。'
-            : '本金 ¥${Money.format(amount)} · ${p.days} 天\n本期预计收益 ¥${Money.format(profit)}，从家长预算预留。\n${p.id == 'dividend' ? (mode == 'cash' ? '收益进零钱，本金续期' : '收益与本金一起续期') : '到期本息回零钱钱包'}。',
-      )) {
-        await run('buy', [p.id, amount, mode]);
-      }
-    } catch (e) {
-      if (mounted) tell(context, e);
-    }
-  }
+  );
 
   List<Widget> wallet() => [
     intro('tasks', '每一笔努力，都有自己的故事。待领取仍属于你的资产；实际交付后才从账户减少。'),
@@ -530,20 +533,7 @@ class _TownPanelState extends State<TownPanel> {
         trailing: Text('¥${Money.format(l.amount)}'),
       ),
   ];
-  Future<void> withdraw() async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => BookForm(
-        '申请实际领取 · ${s.name}',
-        [('金额（元）', ''), ('用来做什么', s.goalName)],
-        note: '先从可用零钱转到待领取，仍属于你的资产。家长确认实际交付后才记为已领取。为礼物自付时请选择对应心愿。',
-        wishes: s.wishes.where((w) => w.available && w.kind == 'gift').toList(),
-        onSubmit: (data) =>
-            c.perform('request', [Money.parse(data[0]), data[1], data[2]]),
-      ),
-    );
-  }
+  Future<void> withdraw() => requestWithdrawal(context, c, asPage: false);
 
   List<Widget> wish() => [
     intro('wish', '我是星星。今天花掉也好，留给未来也好，先想一想为什么想要它。'),
@@ -598,33 +588,37 @@ class _TownPanelState extends State<TownPanel> {
   ];
   List<Widget> loans() => [
     intro('wish', '看清每月需要偿还多少，再决定是否接受。只有家长实际垫付购买，计划才生效。不会自动扣款或新增罚息。'),
-    for (final l in s.loans.reversed) loanCard(l),
-    button('写一份预支提议', () async {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => BookForm(
-          '先写下我的提议 · ${s.name}',
-          [
-            ('购买用途', s.goalName),
-            ('预支金额（元）', '60'),
-            ('偿还期数（月）', '3'),
-            ('首次还款日 YYYY-MM-DD', Day.month(s.date, 1)),
-          ],
-          note: '1–1000 元，1–12 个月。家长将提出最终利息与日期；垫付不进入零钱钱包，也不算自己攒够。',
-          wishes: s.wishes
-              .where((w) => w.available && w.kind == 'gift')
-              .toList(),
-          onSubmit: (data) => c.perform('loanRequest', [
-            data[0],
-            Money.parse(data[1]),
-            months(data[2]),
-            data[3],
-            data[4],
-          ]),
-        ),
-      );
-    }),
+    for (final l in s.loans.reversed.where(
+      (l) => widget.recordId == null || l.id == widget.recordId,
+    ))
+      loanCard(l),
+    if (!widget.asPage)
+      button('写一份预支提议', () async {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => BookForm(
+            '先写下我的提议 · ${s.name}',
+            [
+              ('购买用途', s.goalName),
+              ('预支金额（元）', '60'),
+              ('偿还期数（月）', '3'),
+              ('首次还款日 YYYY-MM-DD', Day.month(s.date, 1)),
+            ],
+            note: '1–1000 元，1–12 个月。家长将提出最终利息与日期；垫付不进入零钱钱包，也不算自己攒够。',
+            wishes: s.wishes
+                .where((w) => w.available && w.kind == 'gift')
+                .toList(),
+            onSubmit: (data) => c.perform('loanRequest', [
+              data[0],
+              Money.parse(data[1]),
+              months(data[2]),
+              data[3],
+              data[4],
+            ]),
+          ),
+        );
+      }),
     note('现金分红不会自动抵债；到账后可以自行选择主动还款。提前结清只支付未还本金与已到期利息，免除未来利息。'),
   ];
   Widget loanCard(Loan l, {bool parent = false}) {
@@ -1026,6 +1020,166 @@ class _TownPanelState extends State<TownPanel> {
     const InvestmentLab(),
     button('回储蓄小屋', () => setState(() => tab = 'savings')),
   ];
+}
+
+class DepositForm extends StatefulWidget {
+  const DepositForm(this.controller, this.product, {super.key});
+  final TownController controller;
+  final Product product;
+  @override
+  State<DepositForm> createState() => _DepositFormState();
+}
+
+class _DepositFormState extends State<DepositForm> {
+  late final amount = TextEditingController(
+    text: '${widget.product.minimum ~/ 100}',
+  );
+  late String distribution = widget.controller.account.distribution;
+  bool saving = false;
+  String? error;
+  @override
+  void dispose() {
+    amount.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.controller, p = widget.product, s = c.account;
+    int? principal;
+    try {
+      principal = Money.parse(amount.text);
+    } catch (_) {
+      /* Incomplete amount input has no preview. */
+    }
+    final profit = principal == null
+        ? null
+        : p.market
+        ? TeachingMarket.reserve(p.id, principal)
+        : Money.interest(principal, s.rateFor(p.id), p.days);
+    return PopScope(
+      canPop: !saving,
+      child: DetailPage(
+        title: Text('存入${p.name}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('可用零钱 ¥${Money.format(s.wallet)} · ${p.minimum ~/ 100} 元起'),
+              const SizedBox(height: 16),
+              TextField(
+                key: const Key('deposit-amount'),
+                controller: amount,
+                enabled: !saving,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: '存入金额（元）'),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '${s.name}的本次约定 · ${p.days} 天',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text('${s.date} 至 ${Day.add(s.date, p.days)}'),
+              if (p.market) ...[
+                const Text('非保本：取回时，收益和亏损都会实际记入账本。上涨没有保证。'),
+                Text(
+                  '最多亏损 ${p.lossCapBps ~/ 100}% · 最多收益 ${p.gainCapBps ~/ 100}%',
+                ),
+                if (principal != null)
+                  Text(
+                    '本次本金 ¥${Money.format(principal)} · 最多亏损 ¥${Money.format(Money.rounded(principal, p.lossCapBps, 1, 10000))}',
+                  ),
+                if (profit != null)
+                  Text('本次最多收益 ¥${Money.format(profit)}，从家长预算预留。'),
+                const Text(
+                  '到期或提前取回时，本金与实际涨跌回零钱；提前取回按当天教学行情结算。家长已允许新波动投资。这不是基金或纳指真实报价。',
+                ),
+              ] else ...[
+                Text(
+                  '约定年化 ${(s.rateFor(p.id) / 100).toStringAsFixed(2)}% · 条款版本 ${s.versionFor(p.id)}',
+                ),
+                if (profit != null)
+                  Text('本期预计收益 ¥${Money.format(profit)}，从家长预算预留。'),
+                const Text('提前取回保留本金，收益按本期利率与 0.10% 中较低者重算。'),
+                if (p.id == 'dividend') ...[
+                  RadioGroup<String>(
+                    groupValue: distribution,
+                    onChanged: (v) {
+                      if (!saving) setState(() => distribution = v!);
+                    },
+                    child: Column(
+                      children: [
+                        RadioListTile(
+                          value: 'cash',
+                          title: const Text('现金分红：收益进零钱，本金续期'),
+                          enabled: !saving,
+                        ),
+                        RadioListTile(
+                          value: 'reinvest',
+                          title: const Text('红利再投：本金与收益一起续期'),
+                          enabled: !saving,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Text('续期检查原承诺、利率变更与预算；不满足时本息回零钱。'),
+                ] else
+                  const Text('到期本息自动回零钱；继续存入时重新确认。'),
+              ],
+              const SizedBox(height: 12),
+              Text('当前可用收益预算 ¥${Money.format(s.freeBudget)}。存入只转移本金，不增加劳动收入。'),
+              if (error != null)
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    error!,
+                    key: const Key('deposit-error'),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            key: const Key('confirm-deposit'),
+            onPressed: saving
+                ? null
+                : () async {
+                    setState(() {
+                      saving = true;
+                      error = null;
+                    });
+                    try {
+                      await c.perform('buy', [
+                        p.id,
+                        Money.parse(amount.text),
+                        distribution,
+                      ]);
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      if (mounted) {
+                        setState(() {
+                          error = userMessage(e);
+                          saving = false;
+                        });
+                      }
+                    }
+                  },
+            child: Text(saving ? '正在保存…' : '确认存入'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class BookForm extends StatefulWidget {

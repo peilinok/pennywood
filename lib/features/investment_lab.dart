@@ -7,7 +7,13 @@ import '../domain/money.dart';
 
 // A self-contained, read-only lesson: animation never touches the clock or family ledger.
 class InvestmentLab extends StatefulWidget {
-  const InvestmentLab({super.key});
+  const InvestmentLab({
+    this.projectionPrincipal = 10000,
+    this.projectionRateBps = 800,
+    this.weeklyPlan = 0,
+    super.key,
+  });
+  final int projectionPrincipal, projectionRateBps, weeklyPlan;
   @override
   State<InvestmentLab> createState() => _InvestmentLabState();
 }
@@ -18,7 +24,13 @@ class _InvestmentLabState extends State<InvestmentLab>
   late List<List<int>> marketSeries;
   String topic = 'market';
   int step = 60, scenario = 0, rate = 8;
-  bool distributed = false, reinvest = false;
+  bool distributed = false, reinvest = false, contribute = false;
+  late final principal = TextEditingController(
+    text: Money.format(widget.projectionPrincipal),
+  );
+  late final weekly = TextEditingController(
+    text: Money.format(widget.weeklyPlan),
+  );
   int get limit => topic == 'market' ? 60 : 20;
   bool get reduced =>
       MediaQuery.of(context).disableAnimations ||
@@ -65,6 +77,8 @@ class _InvestmentLabState extends State<InvestmentLab>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     playback.dispose();
+    principal.dispose();
+    weekly.dispose();
     super.dispose();
   }
 
@@ -181,6 +195,7 @@ class _InvestmentLabState extends State<InvestmentLab>
               ('market', '起伏的旅程'),
               ('compound', '收益生小收益'),
               ('dividend', '分红去哪儿'),
+              ('projection', '我的假设'),
             ])
               ChoiceChip(
                 key: Key('lesson-${item.$1}'),
@@ -200,6 +215,7 @@ class _InvestmentLabState extends State<InvestmentLab>
         if (topic == 'market') ...marketLesson(p),
         if (topic == 'compound') ...compoundLesson(p),
         if (topic == 'dividend') ...dividendLesson(p),
+        if (topic == 'projection') ...projectionLesson(),
         const Text('实验室只做演示，不动你的零钱。教学行情不是真实基金或纳指行情，曲线上涨也不保证未来赚钱。'),
       ],
     );
@@ -316,6 +332,73 @@ class _InvestmentLabState extends State<InvestmentLab>
       ]),
     ];
   }
+
+  List<Widget> projectionLesson() {
+    int base, addition;
+    try {
+      base = Money.parse(principal.text);
+      addition = contribute ? Money.parse(weekly.text) * 52 : 0;
+    } catch (_) {
+      return [projectionInputs(), const Text('请填写有效假设金额；这里不会修改真实账户。')];
+    }
+    var reinvested = base, simplePrincipal = base, withdrawn = 0;
+    final a = [base], b = [base];
+    for (var i = 0; i < 20; i++) {
+      reinvested +=
+          Money.interest(reinvested, widget.projectionRateBps, 365) + addition;
+      withdrawn += Money.interest(
+        simplePrincipal,
+        widget.projectionRateBps,
+        365,
+      );
+      simplePrincipal += addition;
+      a.add(reinvested);
+      b.add(simplePrincipal + withdrawn);
+    }
+    return [
+      projectionInputs(),
+      LearningChart(
+        series: [a, b],
+        step: step,
+        labels: const ['收益再投入', '取出收益（含已取出）'],
+        unit: '年',
+      ),
+      Text(
+        '预计收益再投入：¥${Money.format(a[step])}\n预计取出收益（包括已取出部分）：¥${Money.format(b[step])}\n预计差额：¥${Money.format(a[step] - b[step])}',
+        key: const Key('projection-value'),
+      ),
+      journeyControls('年'),
+      const Text(
+        '仅为假设：默认以扣除计划待还后的积累为起点，按当前年化每年结算；劳动计划按每年末投入 52 周。金额与计划只在本课堂演示，未来收入、利率、预算可能改变，投影不会入账，也不是承诺。',
+      ),
+    ];
+  }
+
+  Widget projectionInputs() => card([
+    title('如果把收益也留下？'),
+    Text('假设年化 ${(widget.projectionRateBps / 100).toStringAsFixed(2)}%'),
+    TextField(
+      key: const Key('projection-principal'),
+      controller: principal,
+      decoration: const InputDecoration(labelText: '假设起点（元）'),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: (_) => setState(() {}),
+    ),
+    CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('加入每周计划劳动留存'),
+      value: contribute,
+      onChanged: (v) => setState(() => contribute = v!),
+    ),
+    if (contribute)
+      TextField(
+        key: const Key('projection-weekly'),
+        controller: weekly,
+        decoration: const InputDecoration(labelText: '假设每周留存（元）'),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        onChanged: (_) => setState(() {}),
+      ),
+  ]);
 
   List<Widget> dividendLesson(PaperColors p) => [
     card([
@@ -441,7 +524,10 @@ class _CurvePainter extends CustomPainter {
   final PaperColors colors;
   @override
   void paint(Canvas canvas, Size size) {
-    final maxValue = series.expand((s) => s).reduce(math.max) * 1.08;
+    final maxValue = math.max(
+      1.0,
+      series.expand((s) => s).reduce(math.max) * 1.08,
+    );
     final minValue = math.min(
       series.expand((s) => s).reduce(math.min) * 0.9,
       9000.0,
