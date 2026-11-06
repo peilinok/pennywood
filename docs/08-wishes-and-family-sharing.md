@@ -20,7 +20,7 @@ Real families start at zero. Demo families use separate credentials and syntheti
 
 ## Cross-device plan: accepted direction, not implemented
 
-The owner selected one-time branded camera pairing and foreground nearby Wi-Fi synchronization: after pairing, both ends tap Sync and discover/authenticate each other automatically. A common Apple Account, internet server, routine QR rescanning and ordinary manual Wi-Fi switching are not part of the intended experience. See [ADR 0004](adr/0004-nearby-family-sync.md) and the [complete implementation plan](28-nearby-family-sync-plan.md).
+The owner selected one-time custom particle camera pairing and foreground nearby Wi-Fi synchronization: after pairing, both ends tap Sync and discover/authenticate each other automatically. A common Apple Account, internet server, routine rescanning and ordinary manual Wi-Fi switching are not part of the intended experience. See [ADR 0004](adr/0004-nearby-family-sync.md), the [custom optical decision](adr/0005-custom-particle-pairing.md) and the [complete implementation plan](28-nearby-family-sync-plan.md).
 
 One primary accounting device admits peers and commits financial state. Companions receive only granted children and submit permitted intents or view confirmed information. The primary may be offline; requests wait until the next nearby session. A companion never gains parent payment authority by sharing a local passcode, and it never runs financial catch-up independently.
 

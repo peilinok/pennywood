@@ -38,3 +38,5 @@ The [implementation plan](../28-nearby-family-sync-plan.md) defines modules, pro
 Start with synthetic two-device discovery/authentication and camera proof, then implement one complete child-submit/parent-pay/child-receive loop before expanding coverage. Preserve all existing accounting, permission, migration and recovery tests. Keep actual physical acceptance distinct from simulator/reference evidence.
 
 This documentation decision changes no current binary, schema6 database, archive reader or credential. A future schema change needs its own migration/backup evidence. No merge or distribution authorization is implied.
+
+Optical refinement: [ADR 0005](0005-custom-particle-pairing.md) records the owner's subsequent choice of custom particle encoding and recognition, replacing the standard-QR realization in the initial implementation-plan draft. The decisions in this record about transport, device authority and daily synchronization remain in effect.

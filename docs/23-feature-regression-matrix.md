@@ -42,13 +42,14 @@ IDs are stable contracts, not a count of screens. Never reuse an ID or silently 
 |---|---|---|
 | SYNC-001 | Same-Apple-Account family synchronization with explicit device/parent authority | Deferred cloud route under ADR 0004; not implemented; zero real CloudKit round trips |
 | SYNC-002 | Duplicate/out-of-order/offline sync, account changes, and multiple-parent conflicts preserve local contracts | Deferred broader cloud/multi-writer scope; local idempotency is not sync validation; nearby cases have separate IDs below |
-| SYNC-003 | One-time branded camera enrollment with parent-approved device/child scope, durable trust and revocation | Planned in [nearby implementation](28-nearby-family-sync-plan.md); no device proof |
+| SYNC-003 | One-time custom particle camera enrollment with parent-approved device/child scope, durable trust and revocation | Planned in [nearby implementation](28-nearby-family-sync-plan.md) and ADR 0005; no device proof |
 | SYNC-004 | Both ends tap Sync; automatically discover/authenticate paired devices, without routine rescanning or manual Wi-Fi switching | Planned; native permission/radio/foreground proof pending |
 | SYNC-005 | One primary commits canonical money and settlement; companions cannot self-promote or run financial catch-up | Planned; existing local permission/date assertions remain protected |
 | SYNC-006 | Durable ordered intents, receipts, draft-ID mapping and transactional replication survive duplicates, dropped replies, disconnect and restart | Planned; local operation IDs alone do not satisfy this contract |
 | SYNC-007 | All child workflows preserve quotes, old promises, per-day tasks, payment links and child isolation across offline/conflicting edits | Planned; no feature may be dropped to complete the task-only slice |
 | SYNC-008 | Enrollment, scoped baselines, migrations and archive recovery preserve pending work and invalidate stale authority safely | Planned; schema6 and schema4/5/6 archive behavior are unchanged today |
 | SYNC-009 | Pairing/sync adapt to layout, motion, accessibility and app lifecycle; delivery and financial outcomes remain distinct | Planned; visual/camera/human and physical acceptance remain separate |
+| SYNC-010 | Custom particle payloads decode with bounded geometry/error checks and stable capture; unsupported, damaged and unrelated images do not authorize peers | [Optical design](29-particle-pairing-code.md); 18 local synthetic checks only, native/camera validation pending |
 | DEVICE-001 | Full release-specific physical finance/backup and accessibility acceptance | Partial historical evidence only; see [delivery checklist](12-delivery-checklist.md) |
 
 Do not turn a pending row into a pass based on compilation, a browser preview, or an older release. Record the exact candidate SHA and evidence level in each delivery.
