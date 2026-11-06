@@ -28,4 +28,4 @@ Complexity, compatibility, privacy, operating cost, and limitations.
 Acceptance checks, migration implications, and recovery limits.
 ```
 
-Current records: [0003: One wish-journal workflow](0003-wish-journal-simplification.md); [0002: Shared agreements and teaching market](0002-shared-agreements-and-teaching-market.md); [0001: Protected integration and recoverable local data](0001-protected-integration.md).
+Current records: [0004: Nearby synchronization with one primary accounting device](0004-nearby-family-sync.md); [0003: One wish-journal workflow](0003-wish-journal-simplification.md); [0002: Shared agreements and teaching market](0002-shared-agreements-and-teaching-market.md); [0001: Protected integration and recoverable local data](0001-protected-integration.md).

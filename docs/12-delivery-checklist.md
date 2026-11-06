@@ -12,14 +12,14 @@ Candidate 0.5.0+12 / schema 6, 2026-11-03. See the [bounded simplification deliv
 | Encrypted backup/recovery, passcode changes, recovery code | Implemented and tested | Wrong password/tampering rejected; pre-restore copy; no credential cloning |
 | 0.3.6 secret protection and recovery copy | Fixed | Regressions failed before repair; final suite passed |
 | Orientations, themes, large text, reduced motion | Widget and historical system evidence | Full physical windows/directions/accessibility pending |
-| Real minimal CloudKit round trip | Incomplete; zero passed | Eligible iCloud team, container, real same-account devices needed |
-| Production sync, device authorization, account switching | Unimplemented | Shared Apple Account is not parent permission |
-| Offline/duplicate/out-of-order and multiple-parent conflicts | Sync unimplemented | Local idempotency does not verify a cloud protocol |
+| Branded camera pairing and automatic nearby Wi-Fi exchange | Planned under ADR 0004; unimplemented | Two-device optical/network/security proof is the first gate |
+| Primary device authority, child-scoped peers, durable requests/receipts and recovery | Unimplemented | See the [nearby plan](28-nearby-family-sync-plan.md); one primary, no independent financial writers |
+| CloudKit round trip, account switching and independent-parent conflicts | Deferred; zero real cloud round trips | Earlier cloud research remains separate from nearby acceptance |
 | Physical installation and local core loop | Historical 0.3.5 passed on two devices | Not repeated on physical devices for 0.3.6 |
 | Source, locks, instructions, publication checks | Published scope | Reviewed files only; raw device data and ledger excluded |
 | Human VoiceOver, iPadOS 26, long-term child testing | Pending | System audits, simulator sizes, and browser previews are insufficient |
 | TestFlight / App Store | Not released | Source publication only |
 
-Next: real CloudKit round trip -> authorization/sync protocol -> submit/check/pay/receive loop -> all monetary operations, multiple-parent conflicts, offline recovery -> physical/long-term acceptance. No custom backend or parallel nearby-transfer implementation. Do not maintain the same family ledger in two independently writable device copies today.
+Next: native nearby/camera proof -> single-authority storage and pairing -> submit/check/pay/receive loop -> all child/financial requests -> archive/recovery and UI polish -> exact-candidate physical acceptance, following [N1-N7](28-nearby-family-sync-plan.md). No custom backend or parallel BLE/acoustic implementation. Current binaries remain local-only; do not maintain the same family ledger in two independently writable device copies today.
 
 See [validation](10-native-validation.md), [sanitized summary](../evidence/public/validation-summary.json), and [review](21-project-review.md).

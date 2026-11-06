@@ -18,16 +18,14 @@ One app contains child and parent areas sharing a local ledger. Parent credentia
 
 Real families start at zero. Demo families use separate credentials and synthetic principal/tasks. There is no production default passcode. Authenticated encrypted archives can be manually restored on another device; recovery returns to the snapshot and does not merge later edits.
 
-## Cross-device plan: not implemented
+## Cross-device plan: accepted direction, not implemented
 
-Target use: parent iPhone/iPad and child iPad on the same Apple Account. The candidate is local Drift plus CloudKit private database, without a custom backend. Apple hosts the service; record sync, authorization, and accounting consistency still require implementation.
+The owner selected one-time branded camera pairing and foreground nearby Wi-Fi synchronization: after pairing, both ends tap Sync and discover/authenticate each other automatically. A common Apple Account, internet server, routine QR rescanning and ordinary manual Wi-Fi switching are not part of the intended experience. See [ADR 0004](adr/0004-nearby-family-sync.md) and the [complete implementation plan](28-nearby-family-sync-plan.md).
 
-One Apple Account identifies one cloud user, not a parent. Device admission and parent-device approval need explicit design. CloudKit does not automatically isolate child/parent roles within that account. Do not assume local unlock credentials follow ledger sync.
+One primary accounting device admits peers and commits financial state. Companions receive only granted children and submit permitted intents or view confirmed information. The primary may be offline; requests wait until the next nearby session. A companion never gains parent payment authority by sharing a local passcode, and it never runs financial catch-up independently.
 
-Planned loop: child submission -> local pending upload -> parent receives -> parent checks/confirms payment -> transactional posting and upload -> child receives once -> wish updates. Distinguish saved, sending, delivered, confirmed, and failed states. Do not display money before the confirmed result arrives.
+Planned loop: child saves a pending request -> both ends tap Sync -> primary receives -> parent checks and confirms actual payment -> transactional posting -> child receives the confirmed result once. A bounded foreground session can deliver new results while the parent reviews. Distinguish locally saved, delivered, needing attention, and posted states.
 
-Handle stable operation IDs, per-child write ordering, duplicates/out-of-order delivery, conflicts, offline unknown results, deletion/archive, restore, and account changes. Do not overwrite final balances or share a live SQLite file via iCloud Drive. Do not silently require a permanently online primary device.
+Keep stable operation IDs, ordered requests, durable acknowledgments, scope checks, original promises, safe archive recovery and generation changes. Do not merge independently writable SQLite copies or overwrite balances using arrival order. The implementation remains subject to actual camera/radio, permission, security and two-device acceptance; keep iOS 13 unless explicitly changed.
 
-First validate eligible signing/container and bidirectional synthetic records with offline retries on two physical devices, then define production protocol/schema. A free Personal Team lacks the required iCloud entitlement; verified real cloud round trips remain zero. Keep iOS 13 minimum unless explicitly changed; CKSyncEngine requires iOS 17.
-
-Cross-account sharing, Bluetooth/nearby transfer, payments, and financial accounts are outside this implementation. See [technical research](research/2026-11-01-serverless-family-sync.md) for official sources, quotas, and OS boundaries.
+CloudKit is deferred from the first route, along with BLE/acoustic fallback, independent financial writers and continuous background sync. The [earlier cloud study](research/2026-11-01-serverless-family-sync.md) remains research, with zero verified Pennywood CloudKit round trips. Payments, banking and financial-account integrations remain outside scope.
