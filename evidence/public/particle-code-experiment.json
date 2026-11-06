@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-06",
+  "kind": "local_synthetic_optical_experiment",
+  "format_candidate": "PWPC-v1",
+  "data_bytes": 64,
+  "encoded_bytes": 96,
+  "rs_parity_bytes": 32,
+  "data_particles": 768,
+  "locator_constellations": 5,
+  "passed_checks": 18,
+  "checks": [
+    "isolated-base-render",
+    "rotation-31-degrees",
+    "horizontal-mirror",
+    "one-perspective-warp",
+    "gaussian-blur-radius-0.6",
+    "scale-to-85-percent",
+    "remove-12-encoded-byte-symbols",
+    "additional-payload-0",
+    "additional-payload-1",
+    "additional-payload-2",
+    "additional-payload-3",
+    "rs-one-byte-error",
+    "rs-eight-byte-errors",
+    "rs-sixteen-byte-errors",
+    "rs-twenty-known-erasures",
+    "reject-blank-image",
+    "reject-one-unrelated-particle-image",
+    "reject-tested-forty-symbol-loss"
+  ],
+  "limitations": [
+    "Disposable local source and dependencies are not part of the app.",
+    "Only isolated rendered images and bounded examples were tested.",
+    "No native iOS encoder or decoder was implemented or built.",
+    "No camera, screen-to-camera, video or physical-device validation.",
+    "No full-frame clutter, reliability, false-positive-rate or security claim."
+  ]
+}

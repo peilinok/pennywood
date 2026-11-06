@@ -87,7 +87,7 @@ These generate offline HTML in the ignored `outputs/` directory. Preview balance
 
 ## Remaining work
 
-CloudKit round trips, same-account device authorization, production sync, offline retries, out-of-order delivery, and multiple-parent conflicts remain unimplemented. iCloud signing requires an eligible developer team; a free Personal Team cannot enable it. Unsigned compilation is not cloud validation. Saving an encrypted backup to iCloud Drive is file backup, not synchronization.
+The accepted next direction is [one-time custom particle camera pairing and nearby Wi-Fi synchronization](docs/28-nearby-family-sync-plan.md), with one primary accounting device and scoped companions, under [ADR 0004](docs/adr/0004-nearby-family-sync.md) and [ADR 0005](docs/adr/0005-custom-particle-pairing.md). The [optical format](docs/29-particle-pairing-code.md) has local synthetic experiments only; native recognition, pairing, nearby exchange, offline requests, transactional replication and recovery are still unimplemented. CloudKit and independent financial writers are deferred. Saving an encrypted backup to iCloud Drive remains file backup, not synchronization; neither a simulator build nor this plan proves real device exchange.
 
 Complete physical-device backup/finance regression, human VoiceOver testing, iPadOS 26 windows, and longitudinal child testing remain pending. No TestFlight or App Store release has been made.
 
