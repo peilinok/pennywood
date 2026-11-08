@@ -73,6 +73,13 @@ print(runtime["identifier"])
   printf 'Booting the disposable %s simulator.\n' "$PENNYWOOD_KIND"
   xcrun simctl boot "$PENNYWOOD_SIMULATOR"
   xcrun simctl bootstatus "$PENNYWOOD_SIMULATOR" -b
+  printf 'Running native optical tests on %s.\n' "$PENNYWOOD_KIND"
+  "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --config-only --target lib/main.dart
+  xcodebuild test -quiet -workspace ios/Runner.xcworkspace -scheme Runner -configuration Debug \
+    -destination "id=$PENNYWOOD_SIMULATOR" -parallel-testing-enabled NO \
+    -derivedDataPath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeDerived" \
+    -resultBundlePath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" \
+    -only-testing:RunnerTests CODE_SIGNING_ALLOWED=NO
   for PENNYWOOD_TARGET in family_release_test family_release_restart_test; do
     printf 'Building %s on %s.\n' "$PENNYWOOD_TARGET" "$PENNYWOOD_KIND"
     "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --target "integration_test/$PENNYWOOD_TARGET.dart"

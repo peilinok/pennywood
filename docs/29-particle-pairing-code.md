@@ -1,6 +1,6 @@
 # Custom Particle Pairing Code and Recognition
 
-Date: 2026-11-06. Status: accepted optical direction; experimental format and decoder proposed, not production-ready. [ADR 0005](adr/0005-custom-particle-pairing.md) refines [ADR 0004](adr/0004-nearby-family-sync.md). The owner explicitly requested custom visual encoding and recognition after reviewing the standard QR-based preview.
+Date: 2026-11-06. Status: accepted optical direction; experimental native probe added on 2026-11-08, not production-ready. [ADR 0005](adr/0005-custom-particle-pairing.md) refines [ADR 0004](adr/0004-nearby-family-sync.md). The owner explicitly requested custom visual encoding and recognition after reviewing the standard QR-based preview.
 
 ## 1. Contract and scope
 
@@ -98,7 +98,7 @@ The sanitized [experiment summary](../evidence/public/particle-code-experiment.j
 
 These are isolated rendered images, not camera video, arbitrary scenes, reliability statistics or security acceptance. Only one example per listed transformation was exercised. Full-frame clutter localization, motion, real display/camera resampling, severe perspective, glare, privacy prompts, performance/energy and temporal consistency are not validated. The preview uses public synthetic bytes and establishes no connection. Do not generalize the 18 cases into a false-positive rate or a successful iPhone/iPad acceptance claim.
 
-Local probe sources, generated images and environment dependencies remain outside the published app. Future N1 must add reviewable native source, independent codec vectors and device results before this design can be called implemented.
+The original Python probe and its dependencies remain local. A separate [native camera probe](research/particle-camera-probe.md) was added on 2026-11-08 with independent parity/CRC vectors, error/erasure checks and transformed-render tests. It uses public test bytes and opens no ledger or network connection. Native synthetic evidence does not close N1: screen-to-camera trials, the negative corpus, security and enrollment gates still require their own results.
 
 ## 7. Updated N1 acceptance and dependencies
 
