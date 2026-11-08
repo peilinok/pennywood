@@ -10,7 +10,10 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
   private let area = UIView()
   private let pattern = ParticlePatternView()
   private let action = UIButton(type: .system)
+  private let diagnostics = UILabel()
+  private let copyDiagnostics = UIButton(type: .system)
   private var preview: AVCaptureVideoPreviewLayer?
+  private var cameraDevice: AVCaptureDevice?
   private var configured = false
   private var candidate: [UInt8]?
   private var candidateTime = 0.0
@@ -20,6 +23,12 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
   private var runID = UUID()
   private var captureID = UUID()
   private var areaHeight: NSLayoutConstraint?
+  private var processedFrames = 0
+  private var locatedFrames = 0
+  private var decodedFrames = 0
+  private var minimumErasures: Int?
+  private var processingMilliseconds = 0.0
+  private var maximumProcessingMilliseconds = 0.0
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -38,10 +47,20 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     status.textAlignment = .center
     action.titleLabel?.font = .preferredFont(forTextStyle: .headline)
     action.addTarget(self, action: #selector(activate), for: .touchUpInside)
+    diagnostics.numberOfLines = 0
+    diagnostics.font = .preferredFont(forTextStyle: .caption1)
+    diagnostics.adjustsFontForContentSizeCategory = true
+    diagnostics.textColor = .darkText
+    copyDiagnostics.setTitle("复制诊断摘要", for: .normal)
+    copyDiagnostics.titleLabel?.font = .preferredFont(forTextStyle: .body)
+    copyDiagnostics.titleLabel?.adjustsFontForContentSizeCategory = true
+    copyDiagnostics.titleLabel?.numberOfLines = 0
+    copyDiagnostics.titleLabel?.textAlignment = .center
+    copyDiagnostics.addTarget(self, action: #selector(copySummary), for: .touchUpInside)
     area.backgroundColor = ParticleOptics.paper
     area.layer.cornerRadius = 16
     area.clipsToBounds = true
-    let stack = UIStackView(arrangedSubviews: [mode, instruction, area, status, action])
+    let stack = UIStackView(arrangedSubviews: [mode, instruction, area, status, action, diagnostics, copyDiagnostics])
     stack.axis = .vertical
     stack.spacing = 16
     stack.translatesAutoresizingMaskIntoConstraints = false
@@ -63,6 +82,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -32),
       mode.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
       action.heightAnchor.constraint(greaterThanOrEqualToConstant: 52),
+      copyDiagnostics.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
       areaHeight!
     ])
     instruction.setContentHuggingPriority(.required, for: .vertical)
@@ -96,6 +116,11 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
 
   @objc private func close() { dismiss(animated: true) }
 
+  @objc private func copySummary() {
+    UIPasteboard.general.string = diagnostics.text
+    UIAccessibility.post(notification: .announcement, argument: "已复制诊断摘要")
+  }
+
   private func stop() {
     runID = UUID()
     queue.async { [self] in
@@ -118,6 +143,10 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     preview?.removeFromSuperlayer()
     preview = nil
     pattern.removeFromSuperview()
+    diagnostics.isHidden = mode.selectedSegmentIndex == 0
+    copyDiagnostics.isHidden = mode.selectedSegmentIndex == 0
+    diagnostics.text = "诊断：等待相机采集。"
+    copyDiagnostics.isEnabled = false
     if mode.selectedSegmentIndex == 0 {
       area.addSubview(pattern)
       pattern.frame = area.bounds
@@ -168,6 +197,8 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       preview = layer
     }
     status.text = "正在寻找完整图案……"
+    diagnostics.text = "诊断：正在采集。"
+    copyDiagnostics.isEnabled = false
     action.setTitle("重新开始识别", for: .normal)
     queue.async { [self] in
       captureID = id
@@ -191,9 +222,16 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
             throw NSError(domain: "ParticleProbe", code: 3)
           }
           session.addOutput(output)
+          cameraDevice = camera
           configured = true
         }
         candidate = nil
+        processedFrames = 0
+        locatedFrames = 0
+        decodedFrames = 0
+        minimumErasures = nil
+        processingMilliseconds = 0
+        maximumProcessingMilliseconds = 0
         lastFrame = 0
         started = Date.timeIntervalSinceReferenceDate
         session.startRunning()
@@ -220,22 +258,30 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
           let buffer = CMSampleBufferGetImageBuffer(sampleBuffer),
           CVPixelBufferGetPlaneCount(buffer) >= 1 else { return }
     lastFrame = now
+    let processingStarted = ProcessInfo.processInfo.systemUptime
     let w = CVPixelBufferGetWidthOfPlane(buffer, 0), h = CVPixelBufferGetHeightOfPlane(buffer, 0)
     CVPixelBufferLockBaseAddress(buffer, .readOnly)
     guard let base = CVPixelBufferGetBaseAddressOfPlane(buffer, 0) else {
       CVPixelBufferUnlockBaseAddress(buffer, .readOnly); return
     }
     let stride = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
-    let scale = min(1.0, 960 / Double(max(w, h)))
-    let width = Int(Double(w) * scale), height = Int(Double(h) * scale)
     let source = base.assumingMemoryBound(to: UInt8.self)
-    var pixels = [UInt8](repeating: 255, count: width * height)
-    for y in 0..<height {
-      let row = Int(Double(y) / scale) * stride
-      for x in 0..<width { pixels[y * width + x] = source[row + Int(Double(x) / scale)] }
-    }
+    let image = ParticleGrayImage.fromLuma(source, width: w, height: h, bytesPerRow: stride)
     CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
-    let result = ParticleOptics.recognize(ParticleGrayImage(width: width, height: height, pixels: pixels))
+    let result = ParticleOptics.recognize(image)
+    let duration = (ProcessInfo.processInfo.systemUptime - processingStarted) * 1000
+    processedFrames += 1
+    if result.geometryFound { locatedFrames += 1 }
+    if result.payload != nil { decodedFrames += 1 }
+    if let uncertain = result.minimumErasures { minimumErasures = min(minimumErasures ?? 96, uncertain) }
+    processingMilliseconds += duration
+    maximumProcessingMilliseconds = max(maximumProcessingMilliseconds, duration)
+    let focus = cameraDevice.map { "\($0.focusMode.rawValue)/\($0.isAdjustingFocus ? 1 : 0)/\($0.lensPosition)" } ?? "-"
+    let exposure = cameraDevice.map { CMTimeGetSeconds($0.exposureDuration) * 1000 } ?? 0
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "-"
+    let summary = "光学测试 build \(build) · \(w)×\(h)\n处理 \(processedFrames) 帧 · 定位 \(locatedFrames) 帧 · 解码 \(decodedFrames) 帧\n最少低置信字节 \(minimumErasures.map(String.init) ?? "-")/96\n" +
+      String(format: "处理耗时：平均 %.0f ms · 最大 %.0f ms\n对焦 mode/调整/镜头：%@ · 曝光 %.1f ms",
+        processingMilliseconds / Double(processedFrames), maximumProcessingMilliseconds, focus, exposure)
     let elapsed = now - started
     var stable = false
     if let payload = result.payload {
@@ -250,6 +296,8 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     DispatchQueue.main.async { [weak self] in
       guard let self = self, self.visible, self.runID == id, self.mode.selectedSegmentIndex == 1,
             UIApplication.shared.applicationState == .active else { return }
+      self.diagnostics.text = summary
+      self.copyDiagnostics.isEnabled = true
       if stable, let payload = result.payload {
         let matches = payload == ParticleCode.testPayload()
         self.status.text = matches

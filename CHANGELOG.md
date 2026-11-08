@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical capture testing build 0.5.0+15
+
+- Preserve native-resolution 720p luma and respect padded camera rows. A regression through the actual capture conversion reproduces previously readable blurred particle fields failing after nearest-neighbor reduction.
+- Add an explicitly copied numeric diagnostic summary for capture, geometry, valid decoding, sample confidence, processing time and camera focus/exposure. No camera images or decoded payloads are saved or copied. Retain the optical format, validation, two-frame confirmation, camera permission and schema6.
+- Physical trials of builds 13 and 14 remain unreliable. Build 15 requires a new owner-performed trial; synthetic passing results do not establish a physical repair.
+
 ### Optical reliability testing build 0.5.0+14
 
 - Reject sparse screen-lettering components before ranking filled circular locator candidates. A native regression reproduces a readable particle field failing solely because a nearby screen caption displaces its locators in build 13.

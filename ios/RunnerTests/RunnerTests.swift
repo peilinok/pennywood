@@ -114,6 +114,35 @@ class RunnerTests: XCTestCase {
     }
   }
 
+  func testCameraLumaCopyPreservesDecodableBlurredParticles() throws {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    for (width, blur) in [(400.0, 1.2), (460.0, 1.6)] {
+      let image = UIGraphicsImageRenderer(size: CGSize(width: 1280, height: 720), format: format).image { renderer in
+        renderer.cgContext.setFillColor(ParticleOptics.paper.cgColor)
+        renderer.cgContext.fill(CGRect(x: 0, y: 0, width: 1280, height: 720))
+        ParticleOptics.draw(in: renderer.cgContext,
+          rect: CGRect(x: 640 - width / 2 + 0.3, y: 360 - width / 2 + 0.6, width: width, height: width),
+          payload: ParticleCode.testPayload())
+      }
+      let input = CIImage(cgImage: try XCTUnwrap(image.cgImage))
+      let softened = input.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: blur]).cropped(to: input.extent)
+      let raw = try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(CIContext().createCGImage(softened, from: input.extent))))
+      XCTAssertEqual(ParticleOptics.recognize(raw).payload, ParticleCode.testPayload(), "Source frame is readable")
+      let stride = 1344
+      var storage = [UInt8](repeating: 0, count: stride * 720)
+      for row in 0..<720 {
+        storage.replaceSubrange((row * stride)..<(row * stride + 1280),
+          with: raw.pixels[(row * 1280)..<((row + 1) * 1280)])
+      }
+      let captured = storage.withUnsafeBufferPointer {
+        ParticleGrayImage.fromLuma($0.baseAddress!, width: 1280, height: 720, bytesPerRow: stride)
+      }
+      XCTAssertEqual(ParticleOptics.recognize(captured).payload, ParticleCode.testPayload(),
+        "Camera conversion must retain readable particles at width \(width), blur \(blur)")
+    }
+  }
+
   func testPerspectiveAndMildBlurDecode() throws {
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1

@@ -6,7 +6,7 @@ The 0.5.0+12 simplification candidate is being delivered in bounded tasks under 
 
 An iPhone / iPad financial-learning app for children aged 7-10 and their parents. Children work toward wishes through agreed real-world work or proactive learning. A parent first checks the work, then confirms actual payment; only then do pocket money and wish progress change.
 
-Source candidate: **0.5.0+14** (optical probe testing build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
+Source candidate: **0.5.0+15** (optical probe testing build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
 
 **Available today: two children on one device, with a local ledger. Automatic cross-device sync is not implemented.** There are no real payment, banking, investment-account, or market-data integrations. Parents fund teaching yields under agreed terms and budgets.
 
@@ -89,7 +89,7 @@ These generate offline HTML in the ignored `outputs/` directory. Preview balance
 
 For the separate synthetic optical test, build with `flutter build ios --release --target lib/particle_probe_main.dart`. Open the probe on both devices, display the particle field on iPad and enable the camera on iPhone. This entry opens no family database or credentials, saves no camera frames and establishes no network connection. Normal `lib/main.dart` builds retain the family app. Install updates without uninstalling; return to a normal build to access the retained ledger. See the [probe contract and evidence](docs/research/particle-camera-probe.md).
 
-Build 13's first physical trial was unreliable. Testing build 14 fixes a reproduced case where screen-caption strokes displace the circular locator candidates and corrects the progress hint; a new physical trial is required before claiming reliable camera recognition.
+Physical trials of builds 13 and 14 were unreliable. Build 15 retains the camera's native 720p luma instead of reducing it with nearest-neighbor sampling, which erased readable blurred particles in a reproduced capture-path regression. In Camera mode, aim at the complete field for about ten seconds, then tap Copy diagnostic summary and share the text. The summary contains numeric capture/localization/decoding counts, confidence, processing time and camera focus/exposure metadata; no images or recovered payloads are copied. Physical reliability remains unverified.
 
 ## Remaining work
 

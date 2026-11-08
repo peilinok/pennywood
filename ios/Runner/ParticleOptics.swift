@@ -16,6 +16,20 @@ struct ParticleGrayImage {
     return Double(value) / Double((2 * radius + 1) * (2 * radius + 1))
   }
 
+  static func fromLuma(_ source: UnsafePointer<UInt8>, width: Int, height: Int,
+                       bytesPerRow: Int) -> ParticleGrayImage {
+    // The camera preset bounds this to 1280 x 720. Nearest-neighbor reduction
+    // can erase readable dots, so retain luma while removing row padding.
+    var pixels = [UInt8](repeating: 255, count: width * height)
+    pixels.withUnsafeMutableBufferPointer { destination in
+      for row in 0..<height {
+        destination.baseAddress!.advanced(by: row * width)
+          .update(from: source.advanced(by: row * bytesPerRow), count: width)
+      }
+    }
+    return ParticleGrayImage(width: width, height: height, pixels: pixels)
+  }
+
   static func from(_ image: CGImage) -> ParticleGrayImage? {
     let width = image.width, height = image.height
     var pixels = [UInt8](repeating: 255, count: width * height)
@@ -178,13 +192,16 @@ enum ParticleOptics {
     let payload: [UInt8]?
     let locatorCount: Int
     let geometryFound: Bool
+    let minimumErasures: Int?
   }
 
   static func recognize(_ image: ParticleGrayImage) -> Result {
     let found = locators(image)
     var geometryFound = false
+    var minimumErasures: Int?
     func result(_ bytes: [UInt8]? = nil) -> Result {
-      Result(payload: bytes, locatorCount: found.count, geometryFound: geometryFound)
+      Result(payload: bytes, locatorCount: found.count, geometryFound: geometryFound,
+        minimumErasures: minimumErasures)
     }
     guard found.count >= 5 else { return result() }
     let deadline = Date.timeIntervalSinceReferenceDate + 0.3
@@ -218,6 +235,7 @@ enum ParticleOptics {
               if v1 < v0 { bytes[bit / 8] |= 1 << (7 - bit % 8) }
               if abs(v0 - v1) < 12 { erasures.insert(bit / 8) }
             }
+            if !outside { minimumErasures = min(minimumErasures ?? 96, erasures.count) }
             if !outside && erasures.count <= 32,
                let payload = ParticleCode.decode(bytes, erasures: erasures.sorted()) { return result(payload) }
           }
