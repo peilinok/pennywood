@@ -238,6 +238,10 @@ enum ParticleOptics {
             if !outside { minimumErasures = min(minimumErasures ?? 96, erasures.count) }
             if !outside && erasures.count <= 32,
                let payload = ParticleCode.decode(bytes, erasures: erasures.sorted()) { return result(payload) }
+            // Low contrast can mark correct samples as uncertain. Try the same
+            // bits once without erasures; RS, CRC and profile checks still apply.
+            if !outside && !erasures.isEmpty,
+               let payload = ParticleCode.decode(bytes) { return result(payload) }
           }
         }
       }

@@ -179,6 +179,52 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(result.payload, ParticleCode.testPayload(), "locators=\(result.locatorCount), min=\(gray.pixels.min()!), dark=\(gray.pixels.filter { $0 < 145 }.count)")
   }
 
+  func testLowContrastBlurredSamplesDecodeWithoutDiscardingCorrectBits() throws {
+    for (width, blur) in [(300.0, 1.4), (400.0, 1.8)] {
+      let gray = try lowContrastParticles(width: width, blur: blur, payload: ParticleCode.testPayload())
+      let result = ParticleOptics.recognize(gray)
+      XCTAssertTrue(result.geometryFound)
+      XCTAssertGreaterThan(try XCTUnwrap(result.minimumErasures), 32,
+        "The fixture must exercise uncertain samples beyond the erasure bound")
+      XCTAssertEqual(result.payload, ParticleCode.testPayload(),
+        "Readable low-contrast samples must reach full decoding: width=\(width), blur=\(blur)")
+    }
+  }
+
+  func testLowContrastFallbackValidatesPayloadInsteadOfAssumingTestPattern() throws {
+    var other = ParticleCode.testPayload()
+    other[8] ^= 0x59
+    let checksum = ParticleCode.crc(Array(other.prefix(60)))
+    other.replaceSubrange(60..<64, with: [24, 16, 8, 0].map { UInt8(truncatingIfNeeded: checksum >> $0) })
+    XCTAssertTrue(ParticleCode.valid(other))
+    XCTAssertEqual(ParticleOptics.recognize(try lowContrastParticles(width: 400, blur: 1.8, payload: other)).payload, other)
+    other[10] ^= 1
+    XCTAssertNil(ParticleOptics.recognize(try lowContrastParticles(width: 400, blur: 1.8, payload: other)).payload,
+      "A fully RS-encoded image with an invalid CRC must still fail")
+    other = ParticleCode.testPayload()
+    other[5] = 2
+    let unsupportedCRC = ParticleCode.crc(Array(other.prefix(60)))
+    other.replaceSubrange(60..<64, with: [24, 16, 8, 0].map { UInt8(truncatingIfNeeded: unsupportedCRC >> $0) })
+    XCTAssertNil(ParticleOptics.recognize(try lowContrastParticles(width: 400, blur: 1.8, payload: other)).payload,
+      "A valid CRC cannot authorize an unsupported optical profile")
+  }
+
+  private func lowContrastParticles(width: Double, blur: Double, payload: [UInt8]) throws -> ParticleGrayImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let rendered = UIGraphicsImageRenderer(size: CGSize(width: 1280, height: 720), format: format).image { renderer in
+      renderer.cgContext.setFillColor(ParticleOptics.paper.cgColor)
+      renderer.cgContext.fill(CGRect(x: 0, y: 0, width: 1280, height: 720))
+      ParticleOptics.draw(in: renderer.cgContext,
+        rect: CGRect(x: 640 - width / 2 + 0.3, y: 360 - width / 2 + 0.6, width: width, height: width), payload: payload)
+    }
+    let input = CIImage(cgImage: try XCTUnwrap(rendered.cgImage))
+    let softened = input.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: blur]).cropped(to: input.extent)
+    let raw = try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(CIContext().createCGImage(softened, from: input.extent))))
+    return ParticleGrayImage(width: raw.width, height: raw.height,
+      pixels: raw.pixels.map { UInt8(90 + (Double($0) - 90) * 0.6) })
+  }
+
   func testMatchingDecodedFramesConfirmAcrossUndecodableFrames() throws {
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1

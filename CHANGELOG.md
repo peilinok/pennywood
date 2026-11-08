@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical low-contrast testing build 0.5.0+17
+
+- Retain erasure-based decoding and try the same sampled bits once without erasures when uncertain samples prevent recovery. The existing decoder still requires complete RS, CRC and format/profile validation; unknown-error correction remains limited to 16 bytes.
+- Add rendered-image regressions for blurred low-contrast fields, another valid payload, invalid CRC and an unsupported profile with valid CRC. Both new test methods failed before the repair. Preserve the optical profile, camera settings, two-frame timing, schema6 and recovery.
+- The owner reports build 16 never confirmed: 52 processed frames, 39 geometric matches, zero valid decodes and 87 minimum uncertain bytes. Synthetic reproduction and passing checks do not establish a physical repair; build 17 needs a separate camera trial.
+
 ### Optical confirmation testing build 0.5.0+16
 
 - Retain a valid candidate across undecodable frames inside the agreed 100 ms to one-second confirmation window. Preserve the first temporal anchor when a repeat arrives too early; different valid payloads, expiry and scan lifecycle reset still prevent stale confirmation.
