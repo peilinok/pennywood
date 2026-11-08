@@ -75,11 +75,30 @@ print(runtime["identifier"])
   xcrun simctl bootstatus "$PENNYWOOD_SIMULATOR" -b
   printf 'Running native optical tests on %s.\n' "$PENNYWOOD_KIND"
   "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --config-only --target lib/main.dart
-  xcodebuild test -quiet -workspace ios/Runner.xcworkspace -scheme Runner -configuration Debug \
+  if ! xcodebuild test -quiet -workspace ios/Runner.xcworkspace -scheme Runner -configuration Debug \
     -destination "id=$PENNYWOOD_SIMULATOR" -parallel-testing-enabled NO \
     -derivedDataPath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeDerived" \
     -resultBundlePath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" \
-    -only-testing:RunnerTests CODE_SIGNING_ALLOWED=NO
+    -only-testing:RunnerTests CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=; then
+    # Export only test names and explicitly bounded stage labels, never assertion values or attachments.
+    xcrun xcresulttool get test-results tests --path "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" --format json | python3 -c '
+import json, re, sys
+def walk(nodes):
+    for node in nodes:
+        yield node
+        yield from walk(node.get("children", []))
+nodes = list(walk(json.load(sys.stdin).get("testNodes", [])))
+failures = [n for n in nodes if n.get("nodeType") == "Test Case" and n.get("result") == "Failed"]
+print("Native test failures:", len(failures))
+for failure in failures:
+    print("Failed:", failure.get("nodeIdentifier", "unknown"))
+for node in nodes:
+    marker = re.search(r"\[NEARBY-STAGES\] ([a-z.,-]+)", node.get("name", ""))
+    if marker:
+        print("Nearby stages:", marker.group(1))
+'
+    exit 1
+  fi
   for PENNYWOOD_TARGET in family_release_test family_release_restart_test; do
     printf 'Building %s on %s.\n' "$PENNYWOOD_TARGET" "$PENNYWOOD_KIND"
     "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --target "integration_test/$PENNYWOOD_TARGET.dart"

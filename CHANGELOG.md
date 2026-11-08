@@ -4,6 +4,32 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Synthetic nearby browser-handoff experiment 0.5.0+23
+
+- Retain the selected Bonjour browser until the connection is ready, then cancel it before application exchange. Existing deadlines, cancellation and background cleanup still bound its lifetime; endpoint selection, TLS, keys, framing and messages are unchanged.
+- Owner-supplied build 22 diagnostics complete on shared Wi-Fi but fail before TLS without a shared router, using two distinct Wi-Fi disconnection methods. The simulator cannot reproduce this radio path. This single-variable experiment does not claim a root cause or physical repair; ongoing peer-to-peer discovery may reduce performance under Apple's guidance.
+- Preserve the saved test pair, production credentials, optical validation, schema6, archives, permissions and dependencies. Physical comparison remains required after same-bundle updates on both test devices.
+
+### Synthetic nearby failure diagnostic build 0.5.0+22
+
+- Preserve build, role, phase, connection state, TLS confirmation, protocol phase, message counters, fixed path categories, numeric network errors and elapsed time before failure cleanup. Export no credential, discovery name, endpoint or payload.
+- Reproduce missing failure evidence through actual Network connections: an unfinished TLS handshake times out, while an authenticated peer's oversized frame is rejected. Retain failure, stopped-session and saved-pair assertions; do not relax deadlines, authentication or parsing.
+- The owner reports build 21 saved-pair sync and app-process restart sync on both devices, but the router-free/no-internet trial timed out on iPhone. Its cause and physical acceptance remain open. No transport parameter, stored-key, optical, schema6, archive, dependency or permission changes are included.
+
+### Synthetic nearby identity repair testing build 0.5.0+21
+
+- Reproduce matching-key TLS failure with a fixed identity containing a zero byte, separately from a non-UTF-8 identity. Encode the complete identity as Base64 ASCII only at the Network PSK API boundary; preserve the random secret and strict negotiated TLS checks.
+- Retain wrong-key/identity rejection and full Bonjour enrollment, permanent-key activation and reopened no-scan reconnect assertions. Update both test endpoints; no schema6, archive, stored test credential, production permission or optical-format change is required.
+- Read the native result tree for failure-stage diagnostics so a later bounded stage marker is not lost behind the first assertion. Never export assertion values, credentials or attachments. Physical enrollment, restart, permission and no-router trials remain pending.
+
+### Synthetic nearby connection testing build 0.5.0+20
+
+- Add an independent two-device probe: scan a fresh two-minute particle invitation, explicitly admit on the display device, durably save a pending test pair, then authenticate with the permanent credential before activation and acknowledged test-message exchange.
+- Reopen saved pending/active credentials and reconnect by tapping Sync on both ends. Bonjour hints rotate; wrong TLS keys/identities, invalid or oversized frames, wrong attempt bindings and failed writes cannot report completion. Cancellation/background stops the foreground session and ignores late callbacks.
+- Store only synthetic trust in a separate nonsynchronizable, device-only unlocked Keychain service. Forget targets its local item. Add local-network/Bonjour declarations without new dependencies, entitlements, platform targets or changes to production credentials, schema6, archives or accounting.
+- Preserve the build 19 optical path and two-frame confirmation; dynamic invitations use the same text-free display. The owner reports 5/5 build 19 trials at about one second. The complete optical matrix and physical build 20 enrollment, permission, restart and no-router trials remain pending.
+- Test native protocol, real loopback TLS rejection, isolated Keychain behavior, Bonjour enrollment/reopen, cancellation and reflow. Native XCTest now uses certificate-free ad-hoc simulator signing because unsigned hosts cannot access Keychain; no assertion is skipped.
+
 ### Optical display testing build 0.5.0+19
 
 - Add a clean full-screen particle display with an accessible exit icon, safe-area spacing and orientation/window reflow. The iPad display action opens it; exiting returns to the probe controls.

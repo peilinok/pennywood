@@ -294,6 +294,7 @@ enum ParticleOptics {
 }
 
 final class ParticlePatternView: UIView {
+  var payload = ParticleCode.testPayload() { didSet { setNeedsDisplay() } }
   override init(frame: CGRect) {
     super.init(frame: frame)
     backgroundColor = ParticleOptics.paper
@@ -304,6 +305,6 @@ final class ParticlePatternView: UIView {
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
   override func draw(_ rect: CGRect) {
     guard let context = UIGraphicsGetCurrentContext() else { return }
-    ParticleOptics.draw(in: context, rect: bounds, payload: ParticleCode.testPayload())
+    ParticleOptics.draw(in: context, rect: bounds, payload: payload)
   }
 }

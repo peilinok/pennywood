@@ -26,6 +26,12 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>使用相机识别另一台设备上的粒子配对图。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>点击配对或同步后，发现并加密连接附近的栗子小镇设备。</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_pw-probe._tcp</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

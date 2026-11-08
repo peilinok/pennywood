@@ -56,3 +56,9 @@ Uninstalling deletes the local ledger. Upgrade by installing over the existing a
 Verify the old passcode to change it, or generate a recovery code in advance. The code appears once and is concealed on leaving the foreground. Generating a new one invalidates the old. Anyone holding it can reset the local parent passcode: keep it outside the app, away from children.
 
 If the passcode is forgotten, choose Forgot parent passcode on the family home and use the previously saved recovery code. Recovery does not clear the database. No code means no parent-lock bypass. The backup password decrypts archives; the recovery code resets the local passcode. They are not interchangeable.
+
+## Separate nearby testing entry
+
+Build 20's optional `lib/particle_probe_main.dart` entry offers optical-only validation and a separate synthetic connection test. It does not open the family ledger. First pair with a temporary full-screen image, scan on the other device, and explicitly confirm admission on the display device. Allow local-network access for this user-started test. Wait for test-message completion on both devices before recording success.
+
+For later attempts, open the connection page and tap Sync on both devices. Pending activation can resume using saved test credentials. Cancel/background closes the active connection; it does not delete a saved pair. After a failure before the other device saved its offer, explicitly Forget on both devices before pairing again. Forget affects only the probe's local Keychain item. Return to a normal `lib/main.dart` build to access retained family data. See [probe details and remaining physical gates](research/nearby-enrollment-probe.md); these steps do not enable production financial synchronization.
