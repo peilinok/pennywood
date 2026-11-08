@@ -213,17 +213,41 @@ final class NearbyProbeTests: XCTestCase {
     let enrolled = expectation(description: "Both endpoints complete permanent activation and exchange")
     enrolled.expectedFulfillmentCount = 2
     var invitationCount = 0
+    var completed = 0
+    var stages: [String] = []
+    func record(_ event: NearbyProbeTransport.Event, side: String) {
+      let label: String
+      switch event {
+      case .display: label = "display"
+      case .approval: label = "approval"
+      case .complete: label = "complete"
+      case .stopped: label = "stopped"
+      case .status(let message):
+        if message.contains("自动寻找") { label = "browsing" }
+        else if message.contains("加密连接已建立") { label = "tls-ready" }
+        else if message.contains("本地网络访问受限") { label = "policy-denied" }
+        else if message.contains("附近连接未完成") { label = "network-failed" }
+        else if message.contains("配对图已过期") { label = "invalid-invitation" }
+        else { label = "status" }
+      }
+      stages.append(side + "." + label)
+    }
     host.onEvent = { event in
+      record(event, side: "host")
       switch event {
       case .display(let invitation): invitationCount += 1; client.join(payload: invitation.payload)
       case .approval: host.approve()
-      case .complete: enrolled.fulfill()
+      case .complete: completed += 1; enrolled.fulfill()
       default: break
       }
     }
-    client.onEvent = { event in if case .complete = event { enrolled.fulfill() } }
+    client.onEvent = { event in
+      record(event, side: "client")
+      if case .complete = event { completed += 1; enrolled.fulfill() }
+    }
     host.beginEnrollment()
     wait(for: [enrolled], timeout: 20)
+    XCTAssertEqual(completed, 2, "[NEARBY-STAGES] " + stages.joined(separator: ","))
     XCTAssertEqual(invitationCount, 1)
     XCTAssertEqual(try hostStore.load()?.active, true)
     XCTAssertEqual(try clientStore.load()?.active, true)
