@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Synthetic nearby browser-handoff experiment 0.5.0+23
+
+- Retain the selected Bonjour browser until the connection is ready, then cancel it before application exchange. Existing deadlines, cancellation and background cleanup still bound its lifetime; endpoint selection, TLS, keys, framing and messages are unchanged.
+- Owner-supplied build 22 diagnostics complete on shared Wi-Fi but fail before TLS without a shared router, using two distinct Wi-Fi disconnection methods. The simulator cannot reproduce this radio path. This single-variable experiment does not claim a root cause or physical repair; ongoing peer-to-peer discovery may reduce performance under Apple's guidance.
+- Preserve the saved test pair, production credentials, optical validation, schema6, archives, permissions and dependencies. Physical comparison remains required after same-bundle updates on both test devices.
+
 ### Synthetic nearby failure diagnostic build 0.5.0+22
 
 - Preserve build, role, phase, connection state, TLS confirmation, protocol phase, message counters, fixed path categories, numeric network errors and elapsed time before failure cleanup. Export no credential, discovery name, endpoint or payload.

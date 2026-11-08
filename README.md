@@ -6,7 +6,7 @@ The 0.5.0+12 simplification candidate is being delivered in bounded tasks under 
 
 An iPhone / iPad financial-learning app for children aged 7-10 and their parents. Children work toward wishes through agreed real-world work or proactive learning. A parent first checks the work, then confirms actual payment; only then do pocket money and wish progress change.
 
-Source candidate: **0.5.0+22** (synthetic nearby connection diagnostic build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
+Source candidate: **0.5.0+23** (synthetic nearby browser-handoff experiment). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
 
 **Available today: two children on one device, with a local ledger. Automatic cross-device sync is not implemented.** There are no real payment, banking, investment-account, or market-data integrations. Parents fund teaching yields under agreed terms and budgets.
 
@@ -108,6 +108,8 @@ The test uses Bonjour and peer-to-peer-enabled Network TCP with strict TLS 1.2 P
 Build 21 encodes the complete PSK identity as Base64 ASCII at the Network API boundary. Build 20 can fail authentication when a random identity contains a zero byte, even with matching keys. Stored credentials, secret bytes and the optical format are unchanged; update both test endpoints before retrying. Same-bundle updates retain the saved pair; current device acceptance is recorded below.
 
 The owner reports first enrollment on build 20, saved-pair reconnect after upgrading both devices to build 21, and successful reconnect after force-quitting/reopening both apps. The guided no-common-router/no-internet trial then timed out on iPhone; router-free acceptance is not met. Build 22 retains build, role, last stage/state, TLS confirmation, protocol phase, message counters, path categories, numeric error categories and elapsed time in the copied failure summary before stopping. No credential, discovery name, endpoint or payload is exported. It preserves the same keys, transport parameters and deadlines; this is a diagnostic update, not a claimed radio repair.
+
+Build 22 completes saved-pair exchange on shared Wi-Fi in the owner's two-endpoint summaries (0.3/1.5 seconds), but both Control Center disconnection and a Settings Wi-Fi restart without joining a network stall before TLS; the display endpoint accepts no connection. Build 23 changes one variable: retain the selected browser until connection readiness, then stop browsing before application exchange. Failure, cancel and background still stop it within the existing deadlines. Apple recommends stopping peer-to-peer browse before connection for performance; this bounded old-API experiment tests a handoff hypothesis, not a confirmed repair. No simulator result establishes its radio effect. Preserve the pair and collect both physical summaries.
 
 ## Remaining work
 

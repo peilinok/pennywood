@@ -255,7 +255,7 @@ final class NearbyProbeTransport {
       guard let match = results.first(where: {
         if case let .service(name, _, _, _) = $0.endpoint { return names.contains(name) }; return false
       }) else { return }
-      created.cancel(); self.browser = nil
+      // Bounded old-API handoff experiment: retain discovery until the connection is ready.
       self.attach(NWConnection(to: match.endpoint, using: self.parameters))
     }
     created.start(queue: .main)
@@ -279,6 +279,7 @@ final class NearbyProbeTransport {
       case .preparing: self.connectionState = "准备中"
       case .ready:
         self.connectionState = "已就绪"
+        self.browser?.cancel(); self.browser = nil
         guard Self.expectedTLS(candidate) else { self.fail("加密连接不符合预期，已停止。"); return }
         self.tlsConfirmed = true
         self.stage = "消息交换"
