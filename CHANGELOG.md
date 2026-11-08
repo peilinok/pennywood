@@ -4,6 +4,14 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Synthetic nearby connection testing build 0.5.0+20
+
+- Add an independent two-device probe: scan a fresh two-minute particle invitation, explicitly admit on the display device, durably save a pending test pair, then authenticate with the permanent credential before activation and acknowledged test-message exchange.
+- Reopen saved pending/active credentials and reconnect by tapping Sync on both ends. Bonjour hints rotate; wrong TLS keys/identities, invalid or oversized frames, wrong attempt bindings and failed writes cannot report completion. Cancellation/background stops the foreground session and ignores late callbacks.
+- Store only synthetic trust in a separate nonsynchronizable, device-only unlocked Keychain service. Forget targets its local item. Add local-network/Bonjour declarations without new dependencies, entitlements, platform targets or changes to production credentials, schema6, archives or accounting.
+- Preserve the build 19 optical path and two-frame confirmation; dynamic invitations use the same text-free display. The owner reports 5/5 build 19 trials at about one second. The complete optical matrix and physical build 20 enrollment, permission, restart and no-router trials remain pending.
+- Test native protocol, real loopback TLS rejection, isolated Keychain behavior, Bonjour enrollment/reopen, cancellation and reflow. Native XCTest now uses certificate-free ad-hoc simulator signing because unsigned hosts cannot access Keychain; no assertion is skipped.
+
 ### Optical display testing build 0.5.0+19
 
 - Add a clean full-screen particle display with an accessible exit icon, safe-area spacing and orientation/window reflow. The iPad display action opens it; exiting returns to the probe controls.

@@ -13,12 +13,13 @@ import UIKit
     if let controller = window?.rootViewController as? FlutterViewController {
       FlutterMethodChannel(name: "pennywood/particle-probe", binaryMessenger: controller.binaryMessenger)
         .setMethodCallHandler { [weak controller] call, result in
-          guard call.method == "open" else { result(FlutterMethodNotImplemented); return }
+          guard call.method == "open" || call.method == "openNearby" else { result(FlutterMethodNotImplemented); return }
           guard let controller = controller, controller.presentedViewController == nil else {
             result(FlutterError(code: "busy", message: "请先关闭当前页面", details: nil))
             return
           }
-          let navigation = UINavigationController(rootViewController: ParticleProbeController())
+          let page: UIViewController = call.method == "openNearby" ? NearbyProbeController() : ParticleProbeController()
+          let navigation = UINavigationController(rootViewController: page)
           navigation.modalPresentationStyle = .fullScreen
           controller.present(navigation, animated: true)
           result(nil)

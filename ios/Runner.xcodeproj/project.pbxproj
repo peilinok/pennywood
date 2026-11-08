@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AE2200000000000000000006 /* NearbyProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000006 /* NearbyProbeTests.swift */; };
+		AE2200000000000000000005 /* NearbyProbeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000005 /* NearbyProbeController.swift */; };
+		AE2200000000000000000004 /* NearbyProbeTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000004 /* NearbyProbeTransport.swift */; };
+		AE2200000000000000000003 /* NearbyProbeProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000003 /* NearbyProbeProtocol.swift */; };
 		AE2200000000000000000002 /* ParticleProbeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000002 /* ParticleProbeController.swift */; };
 		AE2200000000000000000001 /* ParticleOptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000001 /* ParticleOptics.swift */; };
 		AE2200000000000000000000 /* ParticleCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1100000000000000000000 /* ParticleCode.swift */; };
@@ -45,6 +49,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AE1100000000000000000006 /* NearbyProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyProbeTests.swift; sourceTree = "<group>"; };
+		AE1100000000000000000005 /* NearbyProbeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyProbeController.swift; sourceTree = "<group>"; };
+		AE1100000000000000000004 /* NearbyProbeTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyProbeTransport.swift; sourceTree = "<group>"; };
+		AE1100000000000000000003 /* NearbyProbeProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyProbeProtocol.swift; sourceTree = "<group>"; };
 		AE1100000000000000000002 /* ParticleProbeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleProbeController.swift; sourceTree = "<group>"; };
 		AE1100000000000000000001 /* ParticleOptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleOptics.swift; sourceTree = "<group>"; };
 		AE1100000000000000000000 /* ParticleCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleCode.swift; sourceTree = "<group>"; };
@@ -120,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
+				AE1100000000000000000006 /* NearbyProbeTests.swift */,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -168,6 +177,9 @@
 				AE1100000000000000000000 /* ParticleCode.swift */,
 				AE1100000000000000000001 /* ParticleOptics.swift */,
 				AE1100000000000000000002 /* ParticleProbeController.swift */,
+				AE1100000000000000000005 /* NearbyProbeController.swift */,
+				AE1100000000000000000004 /* NearbyProbeTransport.swift */,
+				AE1100000000000000000003 /* NearbyProbeProtocol.swift */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
@@ -379,6 +391,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				AE2200000000000000000006 /* NearbyProbeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -389,6 +402,9 @@
 				AE2200000000000000000000 /* ParticleCode.swift in Sources */,
 				AE2200000000000000000001 /* ParticleOptics.swift in Sources */,
 				AE2200000000000000000002 /* ParticleProbeController.swift in Sources */,
+				AE2200000000000000000005 /* NearbyProbeController.swift in Sources */,
+				AE2200000000000000000004 /* NearbyProbeTransport.swift in Sources */,
+				AE2200000000000000000003 /* NearbyProbeProtocol.swift in Sources */,
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);

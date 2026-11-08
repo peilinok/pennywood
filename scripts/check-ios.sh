@@ -79,7 +79,7 @@ print(runtime["identifier"])
     -destination "id=$PENNYWOOD_SIMULATOR" -parallel-testing-enabled NO \
     -derivedDataPath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeDerived" \
     -resultBundlePath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" \
-    -only-testing:RunnerTests CODE_SIGNING_ALLOWED=NO
+    -only-testing:RunnerTests CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
   for PENNYWOOD_TARGET in family_release_test family_release_restart_test; do
     printf 'Building %s on %s.\n' "$PENNYWOOD_TARGET" "$PENNYWOOD_KIND"
     "$PENNYWOOD_FLUTTER" build ios --simulator --debug --no-pub --target "integration_test/$PENNYWOOD_TARGET.dart"

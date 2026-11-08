@@ -1,6 +1,6 @@
 # Nearby Family Synchronization Implementation Plan
 
-Date: 2026-11-06. Inspected baseline: `9088521`, app 0.5.0+12, Drift schema6, Flutter 3.35.7, iOS 13 minimum. Status: implementation proposal for review; no nearby synchronization has been implemented or verified on devices. [ADR 0004](adr/0004-nearby-family-sync.md) and [ADR 0005](adr/0005-custom-particle-pairing.md) record the accepted nearby-sync and custom-optical product decisions.
+Date: 2026-11-06. Inspected baseline: `9088521`, app 0.5.0+12, Drift schema6, Flutter 3.35.7, iOS 13 minimum. Status: production implementation proposal; separate optical and synthetic nearby probes are described in [N1b evidence](research/nearby-enrollment-probe.md). No real family synchronization has been implemented or verified on devices. [ADR 0004](adr/0004-nearby-family-sync.md) and [ADR 0005](adr/0005-custom-particle-pairing.md) record the accepted nearby-sync and custom-optical product decisions.
 
 ## 1. Outcome and task contract
 

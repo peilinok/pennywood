@@ -4,6 +4,16 @@ import UIKit
 final class ParticleDisplayController: UIViewController {
   private let pattern = ParticlePatternView()
   private let closeButton = UIButton(type: .system)
+  var onClose: (() -> Void)?
+
+  init(payload: [UInt8] = ParticleCode.testPayload()) {
+    super.init(nibName: nil, bundle: nil)
+    pattern.payload = payload
+    if payload != ParticleCode.testPayload() {
+      pattern.accessibilityLabel = "临时测试配对图，请用另一台设备扫描"
+    }
+  }
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
   override var prefersStatusBarHidden: Bool { true }
   override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -33,7 +43,7 @@ final class ParticleDisplayController: UIViewController {
     closeButton.frame = CGRect(x: safe.maxX - 52, y: safe.minY + 8, width: 44, height: 44)
   }
 
-  @objc private func close() { dismiss(animated: !UIAccessibility.isReduceMotionEnabled) }
+  @objc private func close() { dismiss(animated: !UIAccessibility.isReduceMotionEnabled, completion: onClose) }
   override func accessibilityPerformEscape() -> Bool { close(); return true }
 }
 
@@ -64,6 +74,8 @@ struct ParticleCaptureConfirmation {
 }
 
 final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+  var onPayload: (([UInt8]) -> Void)?
+  private var deliveredPayload = false
   private let session = AVCaptureSession()
   private let queue = DispatchQueue(label: "pennywood.particle-camera")
   private let mode = UISegmentedControl(items: ["展示配对图", "相机识别"])
@@ -103,7 +115,8 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     title = "粒子配对拍照验证"
     view.backgroundColor = ParticleOptics.paper
     navigationItem.leftBarButtonItem = UIBarButtonItem(title: "关闭", style: .plain, target: self, action: #selector(close))
-    mode.selectedSegmentIndex = UIDevice.current.userInterfaceIdiom == .pad ? 0 : 1
+    mode.selectedSegmentIndex = onPayload == nil && UIDevice.current.userInterfaceIdiom == .pad ? 0 : 1
+    mode.isHidden = onPayload != nil
     mode.addTarget(self, action: #selector(changeMode), for: .valueChanged)
     instruction.text = "仅验证拍摄识别，不建立家庭配对。"
     instruction.numberOfLines = 0
@@ -238,6 +251,10 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       status.text = "点击开启相机。识别后显示结果与耗时。"
       action.setTitle("开启相机", for: .normal)
       action.isEnabled = true
+      if onPayload != nil {
+        title = "扫描测试配对图"
+        instruction.text = "扫描另一台设备全屏展示的临时粒子图。识别后自动寻找对应设备，等待对方确认。"
+      }
     }
   }
 
@@ -271,6 +288,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
 
   private func start() {
     stop()
+    deliveredPayload = false
     let id = UUID()
     runID = id
     if preview == nil {
@@ -401,6 +419,12 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       self.updateGeometryOverlay()
       self.copyDiagnostics.isEnabled = true
       if stable, let payload = result.payload {
+        if let onPayload = self.onPayload, !self.deliveredPayload {
+          self.deliveredPayload = true
+          self.status.text = "已确认粒子图，正在建立测试连接。"
+          onPayload(payload)
+          return
+        }
         let matches = payload == ParticleCode.testPayload()
         self.status.text = matches
           ? String(format: "识别成功（光学测试）\n两次有效识别一致 · 用时 %.1f 秒\n尚未建立家庭配对或数据同步。", elapsed)
