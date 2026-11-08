@@ -1,6 +1,32 @@
 import AVFoundation
 import UIKit
 
+struct ParticleCaptureConfirmation {
+  private var candidate: [UInt8]?
+  private var candidateTime = 0.0
+  private var latestCandidateTime = 0.0
+
+  mutating func reset() { candidate = nil }
+
+  mutating func observe(_ payload: [UInt8]?, at time: TimeInterval) -> Bool {
+    if candidate != nil {
+      if time < latestCandidateTime || time - latestCandidateTime > 1 { reset() }
+      else if time - candidateTime > 1 { candidateTime = latestCandidateTime }
+    }
+    // Missing decodes are not disagreements. Preserve the first valid frame
+    // until the accepted 100 ms...1 s confirmation window expires.
+    guard let payload = payload else { return false }
+    if payload == candidate {
+      latestCandidateTime = time
+      return time - candidateTime >= 0.1
+    }
+    candidate = payload
+    candidateTime = time
+    latestCandidateTime = time
+    return false
+  }
+}
+
 final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
   private let session = AVCaptureSession()
   private let queue = DispatchQueue(label: "pennywood.particle-camera")
@@ -15,8 +41,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
   private var preview: AVCaptureVideoPreviewLayer?
   private var cameraDevice: AVCaptureDevice?
   private var configured = false
-  private var candidate: [UInt8]?
-  private var candidateTime = 0.0
+  private var confirmation = ParticleCaptureConfirmation()
   private var lastFrame = 0.0
   private var started = 0.0
   private var visible = false
@@ -26,6 +51,8 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
   private var processedFrames = 0
   private var locatedFrames = 0
   private var decodedFrames = 0
+  private var lastDecodedTime: TimeInterval?
+  private var minimumDecodedInterval: TimeInterval?
   private var minimumErasures: Int?
   private var processingMilliseconds = 0.0
   private var maximumProcessingMilliseconds = 0.0
@@ -125,7 +152,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     runID = UUID()
     queue.async { [self] in
       if session.isRunning { session.stopRunning() }
-      candidate = nil
+      confirmation.reset()
       captureID = UUID()
     }
   }
@@ -225,10 +252,12 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
           cameraDevice = camera
           configured = true
         }
-        candidate = nil
+        confirmation.reset()
         processedFrames = 0
         locatedFrames = 0
         decodedFrames = 0
+        lastDecodedTime = nil
+        minimumDecodedInterval = nil
         minimumErasures = nil
         processingMilliseconds = 0
         maximumProcessingMilliseconds = 0
@@ -272,26 +301,26 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     let duration = (ProcessInfo.processInfo.systemUptime - processingStarted) * 1000
     processedFrames += 1
     if result.geometryFound { locatedFrames += 1 }
-    if result.payload != nil { decodedFrames += 1 }
+    if result.payload != nil {
+      decodedFrames += 1
+      if let previous = lastDecodedTime {
+        minimumDecodedInterval = min(minimumDecodedInterval ?? .infinity, now - previous)
+      }
+      lastDecodedTime = now
+    }
     if let uncertain = result.minimumErasures { minimumErasures = min(minimumErasures ?? 96, uncertain) }
     processingMilliseconds += duration
     maximumProcessingMilliseconds = max(maximumProcessingMilliseconds, duration)
     let focus = cameraDevice.map { "\($0.focusMode.rawValue)/\($0.isAdjustingFocus ? 1 : 0)/\($0.lensPosition)" } ?? "-"
     let exposure = cameraDevice.map { CMTimeGetSeconds($0.exposureDuration) * 1000 } ?? 0
     let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "-"
-    let summary = "光学测试 build \(build) · \(w)×\(h)\n处理 \(processedFrames) 帧 · 定位 \(locatedFrames) 帧 · 解码 \(decodedFrames) 帧\n最少低置信字节 \(minimumErasures.map(String.init) ?? "-")/96\n" +
+    let interval = minimumDecodedInterval.map { String(format: "%.2f 秒", $0) } ?? "-"
+    let elapsed = now - started
+    let stable = confirmation.observe(result.payload, at: now)
+    let progress = String(format: "确认：%@ · 用时 %.1f 秒", stable ? "通过" : "等待", elapsed)
+    let summary = "光学测试 build \(build) · \(w)×\(h)\n处理 \(processedFrames) 帧 · 定位 \(locatedFrames) 帧 · 解码 \(decodedFrames) 帧\n\(progress)\n有效解码帧最短间隔 \(interval)\n最少低置信字节 \(minimumErasures.map(String.init) ?? "-")/96\n" +
       String(format: "处理耗时：平均 %.0f ms · 最大 %.0f ms\n对焦 mode/调整/镜头：%@ · 曝光 %.1f ms",
         processingMilliseconds / Double(processedFrames), maximumProcessingMilliseconds, focus, exposure)
-    let elapsed = now - started
-    var stable = false
-    if let payload = result.payload {
-      if payload == candidate && now - candidateTime >= 0.1 && now - candidateTime <= 1 {
-        stable = true
-      } else {
-        candidate = payload
-        candidateTime = now
-      }
-    } else { candidate = nil }
     if stable { session.stopRunning() }
     DispatchQueue.main.async { [weak self] in
       guard let self = self, self.visible, self.runID == id, self.mode.selectedSegmentIndex == 1,
@@ -301,7 +330,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       if stable, let payload = result.payload {
         let matches = payload == ParticleCode.testPayload()
         self.status.text = matches
-          ? String(format: "识别成功（光学测试）\n连续两帧一致 · 用时 %.1f 秒\n尚未建立家庭配对或数据同步。", elapsed)
+          ? String(format: "识别成功（光学测试）\n两次有效识别一致 · 用时 %.1f 秒\n尚未建立家庭配对或数据同步。", elapsed)
           : "识别到其他有效粒子图。此原型仅验证公开测试图，不建立配对。"
         UIAccessibility.post(notification: .announcement, argument: "粒子图识别成功")
       } else {

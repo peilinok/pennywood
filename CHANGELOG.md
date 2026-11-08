@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical confirmation testing build 0.5.0+16
+
+- Retain a valid candidate across undecodable frames inside the agreed 100 ms to one-second confirmation window. Preserve the first temporal anchor when a repeat arrives too early; different valid payloads, expiry and scan lifecycle reset still prevent stale confirmation.
+- Add native regressions for intermittent rendered-image decodes, minimum/maximum timing, different valid payloads and reset. Two cases failed before repair; an additional sliding-window case rejected a premature-expiry implementation. Add confirmation status, elapsed time and the shortest valid-decode interval to the user-copied numeric summary.
+- The build 15 physical summary reported four valid decodes among 88 processed frames; it did not include their intervals or the final confirmation status. Retain complete optical validation, camera settings, schema6 and recovery. Physical reliability requires another trial.
+
 ### Optical capture testing build 0.5.0+15
 
 - Preserve native-resolution 720p luma and respect padded camera rows. A regression through the actual capture conversion reproduces previously readable blurred particle fields failing after nearest-neighbor reduction.

@@ -178,4 +178,75 @@ class RunnerTests: XCTestCase {
     add(grayAttachment)
     XCTAssertEqual(result.payload, ParticleCode.testPayload(), "locators=\(result.locatorCount), min=\(gray.pixels.min()!), dark=\(gray.pixels.filter { $0 < 145 }.count)")
   }
+
+  func testMatchingDecodedFramesConfirmAcrossUndecodableFrames() throws {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let image = UIGraphicsImageRenderer(size: CGSize(width: 520, height: 520), format: format).image { renderer in
+      ParticleOptics.draw(in: renderer.cgContext, rect: CGRect(x: 0, y: 0, width: 520, height: 520),
+        payload: ParticleCode.testPayload())
+    }
+    let gray = try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(image.cgImage)))
+    let decoded = try XCTUnwrap(ParticleOptics.recognize(gray).payload)
+    let blank = ParticleGrayImage(width: 520, height: 520, pixels: [UInt8](repeating: 248, count: 520 * 520))
+    let missing = ParticleOptics.recognize(blank).payload
+    XCTAssertNil(missing)
+    var confirmation = ParticleCaptureConfirmation()
+    XCTAssertFalse(confirmation.observe(decoded, at: 0))
+    XCTAssertFalse(confirmation.observe(missing, at: 0.15))
+    XCTAssertFalse(confirmation.observe(missing, at: 0.30))
+    XCTAssertTrue(confirmation.observe(decoded, at: 0.45), "A missed frame must not discard a valid in-window candidate")
+  }
+
+  func testConfirmationRetainsFirstFrameUntilMinimumSeparation() {
+    var confirmation = ParticleCaptureConfirmation()
+    let payload = ParticleCode.testPayload()
+    XCTAssertFalse(confirmation.observe(payload, at: 0))
+    XCTAssertFalse(confirmation.observe(payload, at: 0), "The same acquisition time cannot confirm")
+    XCTAssertFalse(confirmation.observe(payload, at: 0.05))
+    XCTAssertTrue(confirmation.observe(payload, at: 0.1), "The first frame remains the temporal anchor")
+  }
+
+  func testConfirmationRejectsExpiredCandidatesAndRestartsWindow() {
+    var confirmation = ParticleCaptureConfirmation()
+    let payload = ParticleCode.testPayload()
+    XCTAssertFalse(confirmation.observe(payload, at: 0))
+    XCTAssertTrue(confirmation.observe(payload, at: 1), "The one-second upper boundary is inclusive")
+    confirmation.reset()
+    XCTAssertFalse(confirmation.observe(payload, at: 0))
+    XCTAssertFalse(confirmation.observe(nil, at: 0.8))
+    XCTAssertFalse(confirmation.observe(payload, at: 1.001), "An expired frame cannot confirm")
+    XCTAssertTrue(confirmation.observe(payload, at: 1.2), "A new candidate can confirm inside its own window")
+    confirmation.reset()
+    XCTAssertFalse(confirmation.observe(payload, at: 0))
+    XCTAssertFalse(confirmation.observe(nil, at: 2))
+    XCTAssertFalse(confirmation.observe(payload, at: 2.1))
+    XCTAssertTrue(confirmation.observe(payload, at: 2.3))
+  }
+
+  func testRecentEarlyRepeatCanConfirmAfterFirstFrameExpires() {
+    var confirmation = ParticleCaptureConfirmation()
+    let payload = ParticleCode.testPayload()
+    XCTAssertFalse(confirmation.observe(payload, at: 0))
+    XCTAssertFalse(confirmation.observe(payload, at: 0.05))
+    XCTAssertFalse(confirmation.observe(nil, at: 1.01))
+    XCTAssertTrue(confirmation.observe(payload, at: 1.02), "The recent repeat is still inside the one-second window")
+  }
+
+  func testDifferentValidPayloadAndResetInvalidateConfirmation() {
+    let payload = ParticleCode.testPayload()
+    var other = payload
+    other[8] ^= 1
+    let checksum = ParticleCode.crc(Array(other.prefix(60)))
+    other.replaceSubrange(60..<64, with: [24, 16, 8, 0].map { UInt8(truncatingIfNeeded: checksum >> $0) })
+    XCTAssertTrue(ParticleCode.valid(other))
+    var confirmation = ParticleCaptureConfirmation()
+    XCTAssertFalse(confirmation.observe(payload, at: 0))
+    XCTAssertFalse(confirmation.observe(other, at: 0.3))
+    XCTAssertFalse(confirmation.observe(payload, at: 0.6), "A different valid payload resets agreement")
+    XCTAssertTrue(confirmation.observe(payload, at: 0.8))
+    confirmation.reset()
+    XCTAssertFalse(confirmation.observe(payload, at: 0.9), "A scan cannot reuse the preceding run's candidate")
+    XCTAssertTrue(confirmation.observe(payload, at: 1.1))
+  }
 }
