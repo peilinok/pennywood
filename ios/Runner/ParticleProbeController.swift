@@ -56,6 +56,11 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
   private var minimumErasures: Int?
   private var processingMilliseconds = 0.0
   private var maximumProcessingMilliseconds = 0.0
+  private var bestSample: ParticleOptics.Sample?
+  private let candidateOverlay = CAShapeLayer()
+  private let samplingOverlay = CAShapeLayer()
+  private var overlayCandidates: [CGPoint] = []
+  private var overlayOutline: [CGPoint] = []
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -87,6 +92,13 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     area.backgroundColor = ParticleOptics.paper
     area.layer.cornerRadius = 16
     area.clipsToBounds = true
+    candidateOverlay.fillColor = nil
+    candidateOverlay.strokeColor = UIColor(red: 0.15, green: 0.35, blue: 0.75, alpha: 1).cgColor
+    candidateOverlay.lineWidth = 2
+    samplingOverlay.fillColor = nil
+    samplingOverlay.strokeColor = UIColor(red: 0.65, green: 0.28, blue: 0.05, alpha: 1).cgColor
+    samplingOverlay.lineWidth = 2
+    samplingOverlay.lineDashPattern = [6, 4]
     let stack = UIStackView(arrangedSubviews: [mode, instruction, area, status, action, diagnostics, copyDiagnostics])
     stack.axis = .vertical
     stack.spacing = 16
@@ -137,6 +149,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     areaHeight?.constant = max(160, min(520, available.width - 32, available.height - 260))
     pattern.frame = area.bounds
     preview?.frame = area.bounds
+    updateGeometryOverlay()
   }
 
   deinit { NotificationCenter.default.removeObserver(self) }
@@ -150,6 +163,9 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
 
   private func stop() {
     runID = UUID()
+    overlayCandidates = []
+    overlayOutline = []
+    updateGeometryOverlay()
     queue.async { [self] in
       if session.isRunning { session.stopRunning() }
       confirmation.reset()
@@ -182,7 +198,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       action.setTitle("测试图保持静止", for: .normal)
       action.isEnabled = false
     } else {
-      instruction.text = "对准 iPad 上的整个粒子图，让图案占画面较大区域，保持稳定并避开反光。"
+      instruction.text = "对准整个粒子图，保持稳定并避开反光。蓝色小圆环应对准定位星簇，橙色虚线圈应围住中间的数据粒子。标记仅表示几何候选。"
       status.text = "点击开启相机。识别后显示结果与耗时。"
       action.setTitle("开启相机", for: .normal)
       action.isEnabled = true
@@ -221,6 +237,8 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       layer.videoGravity = .resizeAspect
       layer.frame = area.bounds
       area.layer.addSublayer(layer)
+      layer.addSublayer(candidateOverlay)
+      layer.addSublayer(samplingOverlay)
       preview = layer
     }
     status.text = "正在寻找完整图案……"
@@ -259,6 +277,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
         lastDecodedTime = nil
         minimumDecodedInterval = nil
         minimumErasures = nil
+        bestSample = nil
         processingMilliseconds = 0
         maximumProcessingMilliseconds = 0
         lastFrame = 0
@@ -309,6 +328,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
       lastDecodedTime = now
     }
     if let uncertain = result.minimumErasures { minimumErasures = min(minimumErasures ?? 96, uncertain) }
+    if let sample = result.sample, sample.improves(bestSample) { bestSample = sample }
     processingMilliseconds += duration
     maximumProcessingMilliseconds = max(maximumProcessingMilliseconds, duration)
     let focus = cameraDevice.map { "\($0.focusMode.rawValue)/\($0.isAdjustingFocus ? 1 : 0)/\($0.lensPosition)" } ?? "-"
@@ -318,14 +338,26 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     let elapsed = now - started
     let stable = confirmation.observe(result.payload, at: now)
     let progress = String(format: "确认：%@ · 用时 %.1f 秒", stable ? "通过" : "等待", elapsed)
-    let summary = "光学测试 build \(build) · \(w)×\(h)\n处理 \(processedFrames) 帧 · 定位 \(locatedFrames) 帧 · 解码 \(decodedFrames) 帧\n\(progress)\n有效解码帧最短间隔 \(interval)\n最少低置信字节 \(minimumErasures.map(String.init) ?? "-")/96\n" +
+    let quality = bestSample.map {
+      String(format: "最佳候选采样：数据区 %.0f×%.0f px · 最小位距 %.1f px\n平均位差 %.1f · 第五点偏差 %.1f px\n",
+        $0.bounds.width, $0.bounds.height, $0.minimumSeparation, $0.meanContrast, $0.fifthError)
+    } ?? "最佳候选采样：尚无完整候选。\n"
+    let summary = "光学测试 build \(build) · \(w)×\(h)\n处理 \(processedFrames) 帧 · 几何候选 \(locatedFrames) 帧 · 解码 \(decodedFrames) 帧\n\(progress)\n有效解码帧最短间隔 \(interval)\n最少低置信字节 \(minimumErasures.map(String.init) ?? "-")/96\n\(quality)" +
       String(format: "处理耗时：平均 %.0f ms · 最大 %.0f ms\n对焦 mode/调整/镜头：%@ · 曝光 %.1f ms",
         processingMilliseconds / Double(processedFrames), maximumProcessingMilliseconds, focus, exposure)
     if stable { session.stopRunning() }
+    let orientation = connection.videoOrientation
+    let mirrored = connection.isVideoMirrored
+    let size = CGSize(width: w, height: h)
+    let candidates = result.candidates.map { Self.sensorPoint($0, size: size, orientation: orientation, mirrored: mirrored) }
+    let outline = result.sample?.outline.map { Self.sensorPoint($0, size: size, orientation: orientation, mirrored: mirrored) } ?? []
     DispatchQueue.main.async { [weak self] in
       guard let self = self, self.visible, self.runID == id, self.mode.selectedSegmentIndex == 1,
             UIApplication.shared.applicationState == .active else { return }
       self.diagnostics.text = summary
+      self.overlayCandidates = candidates
+      self.overlayOutline = outline
+      self.updateGeometryOverlay()
       self.copyDiagnostics.isEnabled = true
       if stable, let payload = result.payload {
         let matches = payload == ParticleCode.testPayload()
@@ -333,11 +365,49 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
           ? String(format: "识别成功（光学测试）\n两次有效识别一致 · 用时 %.1f 秒\n尚未建立家庭配对或数据同步。", elapsed)
           : "识别到其他有效粒子图。此原型仅验证公开测试图，不建立配对。"
         UIAccessibility.post(notification: .announcement, argument: "粒子图识别成功")
+      } else if result.payload != nil {
+        self.status.text = "已读到一帧有效数据，等待第二帧确认……"
       } else {
         self.status.text = result.geometryFound
-          ? "已找到定位星簇，正在校验粒子数据……\n请保持稳定、靠近一些并避开反光。"
+          ? "已找到几何候选，尚未读出有效数据。\n请观察小圆环和虚线圈是否对准图案。"
           : "正在寻找完整图案……\n请让整个圆形图进入画面，并调整距离。"
       }
     }
+  }
+
+  // Preview conversion expects unrotated device coordinates, even when the
+  // output buffer or the visible preview has a different orientation.
+  static func sensorPoint(_ point: CGPoint, size: CGSize, orientation: AVCaptureVideoOrientation,
+                          mirrored: Bool) -> CGPoint {
+    let x = mirrored ? 1 - point.x / size.width : point.x / size.width
+    let y = point.y / size.height
+    switch orientation {
+    case .landscapeRight: return CGPoint(x: x, y: y)
+    case .landscapeLeft: return CGPoint(x: 1 - x, y: 1 - y)
+    case .portrait: return CGPoint(x: y, y: 1 - x)
+    case .portraitUpsideDown: return CGPoint(x: 1 - y, y: x)
+    @unknown default: return CGPoint(x: x, y: y)
+    }
+  }
+
+  private func updateGeometryOverlay() {
+    guard let preview = preview else { return }
+    let candidates = UIBezierPath()
+    for point in overlayCandidates {
+      let center = preview.layerPointConverted(fromCaptureDevicePoint: point)
+      candidates.append(UIBezierPath(ovalIn: CGRect(x: center.x - 6, y: center.y - 6, width: 12, height: 12)))
+    }
+    let outline = UIBezierPath()
+    for (index, point) in overlayOutline.enumerated() {
+      let projected = preview.layerPointConverted(fromCaptureDevicePoint: point)
+      if index == 0 { outline.move(to: projected) } else { outline.addLine(to: projected) }
+    }
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    candidateOverlay.frame = preview.bounds
+    samplingOverlay.frame = preview.bounds
+    candidateOverlay.path = candidates.cgPath
+    samplingOverlay.path = outline.cgPath
+    CATransaction.commit()
   }
 }

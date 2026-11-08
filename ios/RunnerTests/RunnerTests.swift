@@ -1,3 +1,4 @@
+import AVFoundation
 import CoreImage
 import UIKit
 import XCTest
@@ -242,6 +243,74 @@ class RunnerTests: XCTestCase {
     XCTAssertFalse(confirmation.observe(missing, at: 0.15))
     XCTAssertFalse(confirmation.observe(missing, at: 0.30))
     XCTAssertTrue(confirmation.observe(decoded, at: 0.45), "A missed frame must not discard a valid in-window candidate")
+  }
+
+  func testSamplingDiagnosticsLocateTheRenderedDataField() throws {
+    let result = ParticleOptics.recognize(try samplingFrame(includeData: true))
+    XCTAssertEqual(result.payload, ParticleCode.testPayload())
+    let sample = try XCTUnwrap(result.sample)
+    let bounds = sample.outline.reduce(CGRect.null) { $0.union(CGRect(origin: $1, size: .zero)) }
+    XCTAssertEqual(bounds.minX, 466, accuracy: 2)
+    XCTAssertEqual(bounds.maxX, 814, accuracy: 2)
+    XCTAssertEqual(bounds.minY, 186, accuracy: 2)
+    XCTAssertEqual(bounds.maxY, 534, accuracy: 2)
+    XCTAssertEqual(sample.minimumSeparation, 4.7, accuracy: 0.1)
+    XCTAssertGreaterThan(sample.meanContrast, 40)
+    XCTAssertLessThan(sample.fifthError, 4)
+    XCTAssertEqual(sample.erasures, result.minimumErasures)
+    XCTAssertTrue((5...8).contains(result.candidates.count))
+  }
+
+  func testLocatorOnlyAndBlankFramesDoNotReportReadableData() throws {
+    let result = ParticleOptics.recognize(try samplingFrame(includeData: false))
+    XCTAssertTrue(result.geometryFound, "Five real locator centers can match without data")
+    XCTAssertNil(result.payload)
+    let sample = try XCTUnwrap(result.sample)
+    XCTAssertEqual(sample.erasures, 96)
+    XCTAssertEqual(sample.meanContrast, 0, accuracy: 0.1)
+    let blank = ParticleGrayImage(width: 1280, height: 720,
+      pixels: [UInt8](repeating: 248, count: 1280 * 720))
+    let cleared = ParticleOptics.recognize(blank)
+    XCTAssertNil(cleared.sample)
+    XCTAssertTrue(cleared.candidates.isEmpty)
+    XCTAssertFalse(cleared.geometryFound)
+  }
+
+  func testPreviewCoordinatesPreserveSensorLocationAcrossBufferOrientations() {
+    let frames: [(AVCaptureVideoOrientation, CGSize, CGPoint)] = [
+      (.landscapeRight, CGSize(width: 1280, height: 720), CGPoint(x: 256, y: 504)),
+      (.landscapeLeft, CGSize(width: 1280, height: 720), CGPoint(x: 1024, y: 216)),
+      (.portrait, CGSize(width: 720, height: 1280), CGPoint(x: 216, y: 256)),
+      (.portraitUpsideDown, CGSize(width: 720, height: 1280), CGPoint(x: 504, y: 1024))
+    ]
+    for (orientation, size, point) in frames {
+      for mirrored in [false, true] {
+        let input = CGPoint(x: mirrored ? size.width - point.x : point.x, y: point.y)
+        let sensor = ParticleProbeController.sensorPoint(input, size: size, orientation: orientation, mirrored: mirrored)
+        XCTAssertEqual(sensor.x, 0.2, accuracy: 0.0001)
+        XCTAssertEqual(sensor.y, 0.7, accuracy: 0.0001)
+      }
+    }
+  }
+
+  private func samplingFrame(includeData: Bool) throws -> ParticleGrayImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let rendered = UIGraphicsImageRenderer(size: CGSize(width: 1280, height: 720), format: format).image { renderer in
+      let context = renderer.cgContext
+      context.setFillColor(ParticleOptics.paper.cgColor)
+      context.fill(CGRect(x: 0, y: 0, width: 1280, height: 720))
+      if includeData {
+        ParticleOptics.draw(in: context, rect: CGRect(x: 380, y: 100, width: 520, height: 520),
+          payload: ParticleCode.testPayload())
+      } else {
+        context.setFillColor(UIColor.darkGray.cgColor)
+        for point in ParticleOptics.anchors {
+          context.fillEllipse(in: CGRect(x: 380 + point.x - 4.7, y: 100 + point.y - 4.7, width: 9.4, height: 9.4))
+        }
+      }
+    }
+    return try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(rendered.cgImage)))
   }
 
   func testConfirmationRetainsFirstFrameUntilMinimumSeparation() {

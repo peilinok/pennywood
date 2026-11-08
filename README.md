@@ -6,7 +6,7 @@ The 0.5.0+12 simplification candidate is being delivered in bounded tasks under 
 
 An iPhone / iPad financial-learning app for children aged 7-10 and their parents. Children work toward wishes through agreed real-world work or proactive learning. A parent first checks the work, then confirms actual payment; only then do pocket money and wish progress change.
 
-Source candidate: **0.5.0+17** (optical probe testing build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
+Source candidate: **0.5.0+18** (optical probe diagnostic build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
 
 **Available today: two children on one device, with a local ledger. Automatic cross-device sync is not implemented.** There are no real payment, banking, investment-account, or market-data integrations. Parents fund teaching yields under agreed terms and budgets.
 
@@ -91,7 +91,9 @@ For the separate synthetic optical test, build with `flutter build ios --release
 
 Physical trials of builds 13 and 14 were unreliable. Build 15 retains the camera's native 720p luma instead of reducing it with nearest-neighbor sampling, which erased readable blurred particles in a reproduced capture-path regression. In Camera mode, aim at the complete field for about ten seconds, then tap Copy diagnostic summary and share the text. The summary contains numeric capture/localization/decoding counts, confidence, processing time and camera focus/exposure metadata; no images or recovered payloads are copied. Physical reliability remains unverified.
 
-Build 15's physical summary included four valid decodes; the owner reports no successful confirmation. Build 16 repaired a reproduced confirmation defect: an intervening undecodable frame no longer discards a valid candidate within the existing 100 ms to one-second window. Its latest physical trial still failed before confirmation: 52 processed frames, 39 geometric matches, zero valid decodes and at least 87 uncertain bytes. Build 17 retains erasure correction and adds one hard-decision correction attempt for uncertain samples, with full RS/CRC/profile validation. Rendered low-contrast regressions reproduce readable frames being rejected solely by overestimated erasures. This does not prove the physical root cause or reliability; a new trial is required. The numeric summary includes confirmation status, elapsed time and the shortest valid-decode interval.
+Build 15's physical summary included four valid decodes; the owner reports no successful confirmation. Build 16 repaired intermittent-frame confirmation, and build 17 retained erasure correction while adding a fully validated hard-decision attempt for uncertain samples. Both mechanisms have synthetic regressions, but build 17 still physically failed: 30 frames, 21 geometric matches, zero decodes and 93 minimum uncertain bytes despite near-full framing. These repairs have not established the physical root cause.
+
+Build 18 adds diagnostic rings around candidate centers and a dashed boundary around the current sampling region. Check whether all five real locator constellations have rings and whether the dashed boundary follows the inner data field. The copied numeric summary adds the best candidate's field dimensions, minimum bit-position spacing, mean luminance difference and fifth-point error. A geometric candidate is not proven localization or a valid payload. No images or recovered payloads are saved/copied; recognition and confirmation decisions are unchanged. This is a diagnostic trial, not a claimed optical fix.
 
 ## Remaining work
 

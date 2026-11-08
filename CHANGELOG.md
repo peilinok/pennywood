@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical geometry diagnostic build 0.5.0+18
+
+- Add transient candidate rings and a dashed data-sampling boundary to the live preview, plus run-best field dimensions, minimum bit-position spacing, mean differential luminance and fifth-point residual in the copied numeric summary. No images or recovered payloads are retained or exported.
+- Label geometric matches as candidates rather than proven locator detection; distinguish one valid frame from completed confirmation. Verify rendered field coordinates, locator-only unreadable geometry, blank-frame clearing and rotated/mirrored preview coordinates.
+- Build 17 still physically failed with 30 processed frames, 21 geometric matches, zero decodes and 93 minimum uncertain bytes. The owner reports near-full framing. Build 18 gathers distinguishing evidence; it does not change recognition decisions, camera settings, optical format, schema6 or recovery, and does not claim an optical repair.
+
 ### Optical low-contrast testing build 0.5.0+17
 
 - Retain erasure-based decoding and try the same sampled bits once without erasures when uncertain samples prevent recovery. The existing decoder still requires complete RS, CRC and format/profile validation; unknown-error correction remains limited to 16 bytes.

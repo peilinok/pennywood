@@ -188,20 +188,40 @@ enum ParticleOptics {
     return CGPoint(x: u, y: v)
   }
 
+  struct Sample {
+    let outline: [CGPoint]
+    let erasures: Int
+    let minimumSeparation: Double
+    let meanContrast: Double
+    let fifthError: Double
+
+    var bounds: CGRect {
+      outline.reduce(CGRect.null) { $0.union(CGRect(origin: $1, size: .zero)) }
+    }
+
+    func improves(_ other: Sample?) -> Bool {
+      guard let other = other else { return true }
+      return erasures < other.erasures || erasures == other.erasures && meanContrast > other.meanContrast
+    }
+  }
+
   struct Result {
     let payload: [UInt8]?
     let locatorCount: Int
     let geometryFound: Bool
     let minimumErasures: Int?
+    let candidates: [CGPoint]
+    let sample: Sample?
   }
 
   static func recognize(_ image: ParticleGrayImage) -> Result {
     let found = locators(image)
     var geometryFound = false
     var minimumErasures: Int?
+    var bestSample: Sample?
     func result(_ bytes: [UInt8]? = nil) -> Result {
       Result(payload: bytes, locatorCount: found.count, geometryFound: geometryFound,
-        minimumErasures: minimumErasures)
+        minimumErasures: minimumErasures, candidates: found, sample: bestSample)
     }
     guard found.count >= 5 else { return result() }
     let deadline = Date.timeIntervalSinceReferenceDate + 0.3
@@ -223,6 +243,8 @@ enum ParticleOptics {
             var bytes = [UInt8](repeating: 0, count: 96)
             var erasures = Set<Int>()
             var outside = false
+            var minimumSeparation = Double.infinity
+            var contrast = 0.0
             for bit in 0..<768 {
               let address = (73 * bit + 19) % 768
               guard let p0 = project(sites[address][0], h), let p1 = project(sites[address][1], h),
@@ -230,12 +252,26 @@ enum ParticleOptics {
                     p0.x < CGFloat(image.width - 2), p1.x < CGFloat(image.width - 2),
                     p0.y < CGFloat(image.height - 2), p1.y < CGFloat(image.height - 2)
               else { outside = true; break }
-              let radius = hypot(p0.x - p1.x, p0.y - p1.y) > 5 ? 1 : 0
+              let separation = hypot(p0.x - p1.x, p0.y - p1.y)
+              let radius = separation > 5 ? 1 : 0
               let v0 = image.mean(p0, radius: radius), v1 = image.mean(p1, radius: radius)
+              minimumSeparation = min(minimumSeparation, separation)
+              contrast += abs(v0 - v1)
               if v1 < v0 { bytes[bit / 8] |= 1 << (7 - bit % 8) }
               if abs(v0 - v1) < 12 { erasures.insert(bit / 8) }
             }
-            if !outside { minimumErasures = min(minimumErasures ?? 96, erasures.count) }
+            if !outside {
+              minimumErasures = min(minimumErasures ?? 96, erasures.count)
+              let outline = (0...32).compactMap { index in
+                let angle = Double(index) * .pi / 16
+                return project(CGPoint(x: 260 + 174 * cos(angle), y: 260 + 174 * sin(angle)), h)
+              }
+              let fifthError = found.indices.filter { $0 != a && $0 != b && $0 != c && $0 != d }
+                .map { hypot(found[$0].x - fifth.x, found[$0].y - fifth.y) }.min() ?? .infinity
+              let sample = Sample(outline: outline, erasures: erasures.count,
+                minimumSeparation: minimumSeparation, meanContrast: contrast / 768, fifthError: fifthError)
+              if sample.improves(bestSample) { bestSample = sample }
+            }
             if !outside && erasures.count <= 32,
                let payload = ParticleCode.decode(bytes, erasures: erasures.sorted()) { return result(payload) }
             // Low contrast can mark correct samples as uncertain. Try the same
