@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Synthetic nearby failure diagnostic build 0.5.0+22
+
+- Preserve build, role, phase, connection state, TLS confirmation, protocol phase, message counters, fixed path categories, numeric network errors and elapsed time before failure cleanup. Export no credential, discovery name, endpoint or payload.
+- Reproduce missing failure evidence through actual Network connections: an unfinished TLS handshake times out, while an authenticated peer's oversized frame is rejected. Retain failure, stopped-session and saved-pair assertions; do not relax deadlines, authentication or parsing.
+- The owner reports build 21 saved-pair sync and app-process restart sync on both devices, but the router-free/no-internet trial timed out on iPhone. Its cause and physical acceptance remain open. No transport parameter, stored-key, optical, schema6, archive, dependency or permission changes are included.
+
 ### Synthetic nearby identity repair testing build 0.5.0+21
 
 - Reproduce matching-key TLS failure with a fixed identity containing a zero byte, separately from a non-UTF-8 identity. Encode the complete identity as Base64 ASCII only at the Network PSK API boundary; preserve the random secret and strict negotiated TLS checks.

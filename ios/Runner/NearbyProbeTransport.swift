@@ -27,6 +27,13 @@ final class NearbyProbeTransport {
   private var progressDeadline: DispatchWorkItem?
   private var advertisementTimer: Timer?
   private var started = 0.0
+  private var stage = "准备"
+  private var connectionState = "未创建"
+  private var tlsConfirmed = false
+  private var sentFrames = 0
+  private var receivedFrames = 0
+  private var lastPath = "未获得"
+  private var lastError = "无"
   private(set) var isRunning = false
   private(set) var summary = "连接测试：尚未开始。"
 
@@ -131,11 +138,42 @@ final class NearbyProbeTransport {
 
   private func prepare() {
     stop()
+    resetConnectionDiagnostics()
     isRunning = true
     consumed = false
     beganWithScan = false
     started = ProcessInfo.processInfo.systemUptime
     summary = "连接测试：进行中。"
+  }
+
+  private func resetConnectionDiagnostics() {
+    stage = "准备"; connectionState = "未创建"; tlsConfirmed = false
+    sentFrames = 0; receivedFrames = 0; lastPath = "未获得"; lastError = "无"
+  }
+
+  private func diagnosticSummary(result: String) -> String {
+    let elapsed = ProcessInfo.processInfo.systemUptime - started
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "-"
+    let phase = machine.map { String(describing: $0.phase) } ?? "-"
+    return String(format: "连接测试 build %@\n结果：%@\n角色：%@\n阶段：%@\n连接状态：%@\nTLS：%@\n协议阶段：%@\n发送消息：%d · 接收消息：%d\n最近路径：%@\n错误：%@\n用时：%.1f 秒", build, result,
+      primary ? "展示端" : "扫描端", stage, connectionState, tlsConfirmed ? "已确认" : "未确认",
+      phase, sentFrames, receivedFrames, lastPath, lastError, elapsed)
+  }
+
+  private func recordPath(_ candidate: NWConnection) {
+    guard let path = candidate.currentPath else { return }
+    let state: String
+    switch path.status {
+    case .satisfied: state = "可用"
+    case .unsatisfied: state = "不可用"
+    case .requiresConnection: state = "待连接"
+    @unknown default: state = "未知"
+    }
+    let types: [(NWInterface.InterfaceType, String)] = [(.wifi, "Wi-Fi"), (.cellular, "蜂窝"),
+      (.wiredEthernet, "有线"), (.loopback, "回环"), (.other, "其他")]
+    let used = types.filter { path.usesInterfaceType($0.0) }.map { $0.1 }.joined(separator: "/")
+    lastPath = state + " · " + (used.isEmpty ? "无接口类别" : used) +
+      " · IPv4 " + (path.supportsIPv4 ? "是" : "否") + " · IPv6 " + (path.supportsIPv6 ? "是" : "否")
   }
 
   private func limitSession(seconds: TimeInterval) {
@@ -161,6 +199,7 @@ final class NearbyProbeTransport {
   }
 
   private func listen() throws {
+    stage = "监听发现"
     let id = run
     let created = try NWListener(using: parameters)
     listener = created
@@ -193,6 +232,7 @@ final class NearbyProbeTransport {
   }
 
   private func browse() {
+    stage = "自动发现"
     let id = run
     let browsing = NWParameters.tcp
     browsing.includePeerToPeer = true
@@ -223,6 +263,8 @@ final class NearbyProbeTransport {
   }
 
   private func attach(_ candidate: NWConnection) {
+    resetConnectionDiagnostics()
+    stage = "连接认证"
     let id = run
     connection = candidate
     framing = NearbyProbeFraming()
@@ -231,9 +273,15 @@ final class NearbyProbeTransport {
     armProgress(seconds: 15)
     candidate.stateUpdateHandler = { [weak self, weak candidate] state in
       guard let self = self, let candidate = candidate, self.run == id, self.connection === candidate else { return }
+      self.recordPath(candidate)
       switch state {
+      case .setup: self.connectionState = "创建中"
+      case .preparing: self.connectionState = "准备中"
       case .ready:
+        self.connectionState = "已就绪"
         guard Self.expectedTLS(candidate) else { self.fail("加密连接不符合预期，已停止。"); return }
+        self.tlsConfirmed = true
+        self.stage = "消息交换"
         self.onEvent?(.status("加密连接已建立，正在核对测试配对……"))
         self.armProgress(seconds: 30)
         self.receive(candidate, run: id)
@@ -241,8 +289,9 @@ final class NearbyProbeTransport {
           do { if let first = try self.machine?.begin() { self.send(first) } }
           catch { self.fail("配对状态无效，请重试。") }
         }
-      case .waiting(let error): self.networkFailure(error)
+      case .waiting(let error): self.connectionState = "等待中"; self.networkFailure(error)
       case .failed(let error):
+        self.connectionState = "失败"
         if self.primary && self.enrollment && !self.consumed && self.invitation?.expiry ?? .distantPast > Date() {
           candidate.cancel(); self.connection = nil; self.machine = nil
           self.progressDeadline?.cancel(); self.progressDeadline = nil
@@ -259,7 +308,9 @@ final class NearbyProbeTransport {
       guard let self = self, self.run == id, self.connection === candidate else { return }
       do {
         if let data = data {
+          self.stage = "接收验证"
           for frame in try self.framing.append(data) {
+            self.receivedFrames += 1
             guard let machine = self.machine else { return }
             let response = try machine.receive(frame)
             if machine.phase == .approval {
@@ -276,7 +327,10 @@ final class NearbyProbeTransport {
         if let error = error { self.networkFailure(error) }
         else if complete { self.fail("连接已中断。测试配对保留，请在两端点击同步重试。") }
         else { self.receive(candidate, run: id) }
-      } catch { self.fail("收到无效数据或测试配对未能保存，已停止；不会报告同步成功。") }
+      } catch {
+        self.lastError = "数据校验或保存失败"
+        self.fail("收到无效数据或测试配对未能保存，已停止；不会报告同步成功。")
+      }
     }
   }
 
@@ -284,6 +338,7 @@ final class NearbyProbeTransport {
     guard let candidate = connection else { return }
     let id = run
     do {
+      sentFrames += 1
       candidate.send(content: try NearbyProbeFraming.encode(frame), completion: .contentProcessed { [weak self] error in
         guard let self = self, self.run == id, self.connection === candidate else { return }
         if let error = error { self.networkFailure(error) }
@@ -294,15 +349,20 @@ final class NearbyProbeTransport {
   }
 
   private func finish() {
-    let elapsed = ProcessInfo.processInfo.systemUptime - started
-    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "-"
-    summary = String(format: "连接测试 build %@\n结果：测试消息交换完成\n方式：%@\n用时：%.1f 秒\n认证：TLS 1.2 · PSK · AES-128-GCM\n测试配对：已持久化\n真实账本：未接入", build,
-      beganWithScan ? "首次扫码配对" : "已存配对自动重连", elapsed)
+    summary = diagnosticSummary(result: "测试消息交换完成") + "\n方式：" +
+      (beganWithScan ? "首次扫码配对" : "已存配对自动重连") +
+      "\n认证：TLS 1.2 · PSK · AES-128-GCM\n测试配对：已持久化\n真实账本：未接入"
     stop()
     onEvent?(.complete)
   }
 
   private func networkFailure(_ error: NWError) {
+    switch error {
+    case .posix(let code): lastError = "POSIX(\(code.rawValue))"
+    case .dns(let code): lastError = "DNS(\(code))"
+    case .tls(let code): lastError = "TLS(\(code))"
+    @unknown default: lastError = "未知网络错误"
+    }
     fail(Self.denied(error, connection: connection)
       ? "本地网络访问受限。请在设置中允许栗子小镇访问本地网络，再点击重试。"
       : "附近连接未完成。请保持两端 App 打开、Wi-Fi 开启后重试。已保存的测试配对保留。")
@@ -311,6 +371,7 @@ final class NearbyProbeTransport {
   private func resumePrepared() {
     let originalStart = started
     stop()
+    resetConnectionDiagnostics()
     isRunning = true
     started = originalStart
     beganWithScan = true
@@ -326,7 +387,9 @@ final class NearbyProbeTransport {
   }
 
   private func fail(_ message: String) {
-    summary = "连接测试：未完成。\n" + message
+    // Snapshot before stop clears the connection and protocol; never stringify their payloads/endpoints.
+    if let candidate = connection { recordPath(candidate) }
+    summary = diagnosticSummary(result: "未完成") + "\n" + message
     stop()
     onEvent?(.status(message))
   }

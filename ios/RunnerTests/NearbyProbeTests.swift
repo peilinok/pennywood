@@ -341,6 +341,57 @@ final class NearbyProbeTests: XCTestCase {
     XCTAssertNil(try store.load())
   }
 
+  func testFailureSummaryDistinguishesStalledTLSFromAuthenticatedInvalidDataAndPreservesPair() throws {
+    for stalledTLS in [true, false] {
+      let store = NearbyProbeStore(account: "test-" + UUID().uuidString)
+      defer { try? store.forget() }
+      let pair = NearbyProbeCredential(version: 1, id: try NearbyProbeInvitation.random(16),
+        secret: try NearbyProbeInvitation.random(32), primary: false, active: true)
+      try store.save(pair)
+      let parameters = stalledTLS ? NWParameters.tcp : NearbyProbeTransport.parameters(secret: pair.secret,
+        identity: Data("paired-v1:".utf8) + pair.id)
+      let listener = try NWListener(using: parameters)
+      listener.service = NWListener.Service(name: pair.serviceName(at: Date()), type: NearbyProbeTransport.service)
+      let transport = NearbyProbeTransport(store: store)
+      var incoming: NWConnection?
+      var began = false
+      defer { transport.stop(); incoming?.cancel(); listener.cancel() }
+      let failed = expectation(description: stalledTLS ? "Unfinished TLS times out" : "Authenticated malformed data is rejected")
+      transport.onEvent = { event in
+        if case .complete = event { XCTFail("A stalled or invalid peer cannot complete") }
+        if case .status = event, !transport.isRunning { failed.fulfill() }
+      }
+      listener.newConnectionHandler = { candidate in
+        incoming = candidate
+        candidate.stateUpdateHandler = { state in
+          if case .ready = state, !stalledTLS {
+            candidate.send(content: Data([0xff, 0xff, 0xff, 0xff]), completion: .contentProcessed { _ in })
+          }
+        }
+        // Plain TCP deliberately accepts without answering the client's TLS handshake.
+        candidate.start(queue: .main)
+      }
+      listener.stateUpdateHandler = { state in
+        if case .ready = state, !began { began = true; transport.sync() }
+      }
+      listener.start(queue: .main)
+      wait(for: [failed], timeout: 20)
+      XCTAssertTrue(transport.summary.contains(stalledTLS ? "连接或确认超时" : "收到无效数据"))
+      XCTAssertTrue(transport.summary.contains("连接测试 build "))
+      XCTAssertTrue(transport.summary.contains(stalledTLS ? "阶段：连接认证" : "阶段：接收验证"))
+      XCTAssertTrue(transport.summary.contains(stalledTLS ? "TLS：未确认" : "TLS：已确认"))
+      XCTAssertTrue(transport.summary.contains("接收消息：0"))
+      XCTAssertTrue(transport.summary.contains("用时："))
+      for secret in [pair.id, pair.secret] {
+        XCTAssertFalse(transport.summary.contains(secret.base64EncodedString()), "No credential bytes in diagnostics")
+        XCTAssertFalse(transport.summary.contains(secret.map { String(format: "%02x", $0) }.joined()))
+      }
+      XCTAssertFalse(transport.summary.contains(pair.serviceName(at: Date())), "No discovery name in diagnostics")
+      XCTAssertEqual(try store.load(), pair, "Failure must retain the saved pair")
+      XCTAssertFalse(transport.isRunning)
+    }
+  }
+
   func testTLSAuthenticatesMatchingIdentitiesContainingZeroAndNonUTF8Bytes() throws {
     let cases: [(String, [UInt8])] = [("zero-byte", [0, 1, 2, 3]), ("non-utf8", [0xff, 0x80, 1, 2])]
     for (label, bytes) in cases {
