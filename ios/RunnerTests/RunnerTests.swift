@@ -74,6 +74,46 @@ class RunnerTests: XCTestCase {
     XCTAssertNil(ParticleOptics.recognize(ParticleGrayImage(width: 520, height: 520, pixels: pixels)).payload)
   }
 
+  func testScreenCaptionDoesNotHideParticleLocators() throws {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let payload = ParticleCode.testPayload()
+    let image = UIGraphicsImageRenderer(size: CGSize(width: 960, height: 540), format: format).image { renderer in
+      renderer.cgContext.setFillColor(ParticleOptics.paper.cgColor)
+      renderer.cgContext.fill(CGRect(x: 0, y: 0, width: 960, height: 540))
+      ParticleOptics.draw(in: renderer.cgContext,
+        rect: CGRect(x: 310, y: 100, width: 340, height: 340), payload: payload)
+      ("公开测试图" as NSString).draw(at: CGPoint(x: 120, y: 10),
+        withAttributes: [.font: UIFont.systemFont(ofSize: 20), .foregroundColor: UIColor.darkGray])
+    }
+    let gray = try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(image.cgImage)))
+    let result = ParticleOptics.recognize(gray)
+    XCTAssertEqual(result.payload, payload, "Screen caption must not displace locator candidates: \(result.locatorCount)")
+  }
+
+  func testGeometryFeedbackDistinguishesTextFromDamagedCode() throws {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    for hasPattern in [false, true] {
+      var damaged = ParticleCode.testPayload()
+      damaged[10] ^= 1
+      let image = UIGraphicsImageRenderer(size: CGSize(width: 960, height: 540), format: format).image { renderer in
+        renderer.cgContext.setFillColor(ParticleOptics.paper.cgColor)
+        renderer.cgContext.fill(CGRect(x: 0, y: 0, width: 960, height: 540))
+        if hasPattern {
+          ParticleOptics.draw(in: renderer.cgContext,
+            rect: CGRect(x: 310, y: 100, width: 340, height: 340), payload: damaged)
+        }
+        ("公开测试图" as NSString).draw(at: CGPoint(x: 120, y: 10),
+          withAttributes: [.font: UIFont.systemFont(ofSize: 20), .foregroundColor: UIColor.darkGray])
+      }
+      let gray = try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(image.cgImage)))
+      let result = ParticleOptics.recognize(gray)
+      XCTAssertNil(result.payload)
+      XCTAssertEqual(result.geometryFound, hasPattern)
+    }
+  }
+
   func testPerspectiveAndMildBlurDecode() throws {
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1

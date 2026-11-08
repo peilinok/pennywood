@@ -257,7 +257,7 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
           : "识别到其他有效粒子图。此原型仅验证公开测试图，不建立配对。"
         UIAccessibility.post(notification: .announcement, argument: "粒子图识别成功")
       } else {
-        self.status.text = result.locatorCount >= 5
+        self.status.text = result.geometryFound
           ? "已找到定位星簇，正在校验粒子数据……\n请保持稳定、靠近一些并避开反光。"
           : "正在寻找完整图案……\n请让整个圆形图进入画面，并调整距离。"
       }

@@ -4,6 +4,11 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical reliability testing build 0.5.0+14
+
+- Reject sparse screen-lettering components before ranking filled circular locator candidates. A native regression reproduces a readable particle field failing solely because a nearby screen caption displaces its locators in build 13.
+- Show the data-validation hint only after a five-point geometric match, rather than merely counting dark candidate components. Retain the particle format, RS/CRC rejection, two-frame confirmation, camera-only permission and schema6. Physical reliability requires a new owner-performed trial.
+
 ### Optical testing build 0.5.0+13
 
 - Add a separate particle-camera probe entry with native display, bounded localization, projective sampling, Reed-Solomon correction and two-frame confirmation. Only public synthetic payloads are used; no family enrollment or synchronization occurs.

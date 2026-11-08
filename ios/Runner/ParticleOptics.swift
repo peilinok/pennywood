@@ -90,6 +90,7 @@ enum ParticleOptics {
   private struct Blob {
     let point: CGPoint
     let area: Int
+    let fillRatio: Double
   }
 
   private static func locators(_ image: ParticleGrayImage) -> [CGPoint] {
@@ -117,12 +118,16 @@ enum ParticleOptics {
       let area = queue.count
       let ratio = Double(xmax - xmin + 1) / Double(ymax - ymin + 1)
       if area >= 2 && area <= 2000 && ratio > 0.45 && ratio < 2.2 {
-        blobs.append(Blob(point: CGPoint(x: Double(sx) / Double(area), y: Double(sy) / Double(area)), area: area))
+        blobs.append(Blob(point: CGPoint(x: Double(sx) / Double(area), y: Double(sy) / Double(area)),
+          area: area, fillRatio: Double(area) / Double((xmax - xmin + 1) * (ymax - ymin + 1))))
       }
       // Textured backgrounds must not cause quadratic matching on an unbounded list.
       if blobs.count > 5000 { return [] }
     }
-    let centers = blobs.filter { $0.area >= 12 }.sorted { $0.area > $1.area }.prefix(100)
+    // Locator centers are filled ellipses; screen lettering must not displace
+    // them simply because a glyph has a larger connected dark area.
+    let centers = blobs.filter { $0.area >= 12 && $0.fillRatio >= 0.6 }
+      .sorted { $0.area > $1.area }.prefix(100)
     var candidates: [(CGPoint, Double)] = []
     for center in centers {
       let radius = sqrt(Double(center.area) / .pi)
@@ -172,11 +177,15 @@ enum ParticleOptics {
   struct Result {
     let payload: [UInt8]?
     let locatorCount: Int
+    let geometryFound: Bool
   }
 
   static func recognize(_ image: ParticleGrayImage) -> Result {
     let found = locators(image)
-    func result(_ bytes: [UInt8]? = nil) -> Result { Result(payload: bytes, locatorCount: found.count) }
+    var geometryFound = false
+    func result(_ bytes: [UInt8]? = nil) -> Result {
+      Result(payload: bytes, locatorCount: found.count, geometryFound: geometryFound)
+    }
     guard found.count >= 5 else { return result() }
     let deadline = Date.timeIntervalSinceReferenceDate + 0.3
     for a in found.indices {
@@ -193,6 +202,7 @@ enum ParticleOptics {
                   let center = project(CGPoint(x: 260, y: 260), h),
                   center.x > 0, center.y > 0, center.x < CGFloat(image.width), center.y < CGFloat(image.height)
             else { continue }
+            geometryFound = true
             var bytes = [UInt8](repeating: 0, count: 96)
             var erasures = Set<Int>()
             var outside = false
