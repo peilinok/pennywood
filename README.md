@@ -6,7 +6,7 @@ The 0.5.0+12 simplification candidate is being delivered in bounded tasks under 
 
 An iPhone / iPad financial-learning app for children aged 7-10 and their parents. Children work toward wishes through agreed real-world work or proactive learning. A parent first checks the work, then confirms actual payment; only then do pocket money and wish progress change.
 
-Source candidate: **0.5.0+12**. Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
+Source candidate: **0.5.0+13** (optical probe testing build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
 
 **Available today: two children on one device, with a local ledger. Automatic cross-device sync is not implemented.** There are no real payment, banking, investment-account, or market-data integrations. Parents fund teaching yields under agreed terms and budgets.
 
@@ -85,9 +85,13 @@ python3 prototype/interaction-lab/build.py
 
 These generate offline HTML in the ignored `outputs/` directory. Preview balances, child names, passcodes, and send/receive controls are synthetic demonstrations, not CloudKit or live family data. `reference/` contains the reference rules and 26 migration cases; production accounting is implemented in Dart.
 
+## Optical camera probe
+
+For the separate synthetic optical test, build with `flutter build ios --release --target lib/particle_probe_main.dart`. Open the probe on both devices, display the particle field on iPad and enable the camera on iPhone. This entry opens no family database or credentials, saves no camera frames and establishes no network connection. Normal `lib/main.dart` builds retain the family app. Install updates without uninstalling; return to a normal build to access the retained ledger. See the [probe contract and evidence](docs/research/particle-camera-probe.md).
+
 ## Remaining work
 
-The accepted next direction is [one-time custom particle camera pairing and nearby Wi-Fi synchronization](docs/28-nearby-family-sync-plan.md), with one primary accounting device and scoped companions, under [ADR 0004](docs/adr/0004-nearby-family-sync.md) and [ADR 0005](docs/adr/0005-custom-particle-pairing.md). The [optical format](docs/29-particle-pairing-code.md) has local synthetic experiments only; native recognition, pairing, nearby exchange, offline requests, transactional replication and recovery are still unimplemented. CloudKit and independent financial writers are deferred. Saving an encrypted backup to iCloud Drive remains file backup, not synchronization; neither a simulator build nor this plan proves real device exchange.
+The accepted next direction is [one-time custom particle camera pairing and nearby Wi-Fi synchronization](docs/28-nearby-family-sync-plan.md), with one primary accounting device and scoped companions, under [ADR 0004](docs/adr/0004-nearby-family-sync.md) and [ADR 0005](docs/adr/0005-custom-particle-pairing.md). The [optical format](docs/29-particle-pairing-code.md) now has an experimental native camera probe and synthetic tests; physical optical acceptance, pairing, nearby exchange, offline requests, transactional replication and recovery remain pending. CloudKit and independent financial writers are deferred. Saving an encrypted backup to iCloud Drive remains file backup, not synchronization; neither a simulator build nor this plan proves real device exchange.
 
 Complete physical-device backup/finance regression, human VoiceOver testing, iPadOS 26 windows, and longitudinal child testing remain pending. No TestFlight or App Store release has been made.
 

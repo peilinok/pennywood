@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical testing build 0.5.0+13
+
+- Add a separate particle-camera probe entry with native display, bounded localization, projective sampling, Reed-Solomon correction and two-frame confirmation. Only public synthetic payloads are used; no family enrollment or synchronization occurs.
+- Add a camera purpose string and request access only after selecting the scanner. Retain schema6, archive compatibility, Bundle ID and installed family data; the probe does not open the ledger.
+- Preserve a failing perspective/blur regression and correct locator ranking when small satellite dots disappear during resampling. Physical screen-to-camera success remains owner acceptance, separate from native synthetic tests.
+
 ### Simplification candidate 0.5.0+12
 
 - Focus the wish home on its goal and one concrete feedback hint; keep the complete configured task area in Tasks.

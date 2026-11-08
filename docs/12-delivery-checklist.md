@@ -12,7 +12,7 @@ Candidate 0.5.0+12 / schema 6, 2026-11-03. See the [bounded simplification deliv
 | Encrypted backup/recovery, passcode changes, recovery code | Implemented and tested | Wrong password/tampering rejected; pre-restore copy; no credential cloning |
 | 0.3.6 secret protection and recovery copy | Fixed | Regressions failed before repair; final suite passed |
 | Orientations, themes, large text, reduced motion | Widget and historical system evidence | Full physical windows/directions/accessibility pending |
-| Custom particle camera pairing and automatic nearby Wi-Fi exchange | Planned under ADR 0004/0005; unimplemented | 18 synthetic optical checks only; native recognition and two-device optical/network/security proof are pending |
+| Custom particle camera pairing and automatic nearby Wi-Fi exchange | Planned under ADR 0004/0005; unimplemented | Native synthetic optical probe added; physical camera and two-device optical/network/security acceptance remain pending |
 | Primary device authority, child-scoped peers, durable requests/receipts and recovery | Unimplemented | See the [nearby plan](28-nearby-family-sync-plan.md); one primary, no independent financial writers |
 | CloudKit round trip, account switching and independent-parent conflicts | Deferred; zero real cloud round trips | Earlier cloud research remains separate from nearby acceptance |
 | Physical installation and local core loop | Historical 0.3.5 passed on two devices | Not repeated on physical devices for 0.3.6 |

@@ -11,6 +11,18 @@ import UIKit
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
     if let controller = window?.rootViewController as? FlutterViewController {
+      FlutterMethodChannel(name: "pennywood/particle-probe", binaryMessenger: controller.binaryMessenger)
+        .setMethodCallHandler { [weak controller] call, result in
+          guard call.method == "open" else { result(FlutterMethodNotImplemented); return }
+          guard let controller = controller, controller.presentedViewController == nil else {
+            result(FlutterError(code: "busy", message: "请先关闭当前页面", details: nil))
+            return
+          }
+          let navigation = UINavigationController(rootViewController: ParticleProbeController())
+          navigation.modalPresentationStyle = .fullScreen
+          controller.present(navigation, animated: true)
+          result(nil)
+        }
       FlutterMethodChannel(name: "pennywood/files", binaryMessenger: controller.binaryMessenger)
         .setMethodCallHandler { [weak self] call, result in
           guard let self = self else { return }
