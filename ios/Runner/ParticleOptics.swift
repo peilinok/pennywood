@@ -105,6 +105,7 @@ enum ParticleOptics {
     let point: CGPoint
     let area: Int
     let fillRatio: Double
+    let compactness: Double
   }
 
   private static func locators(_ image: ParticleGrayImage) -> [CGPoint] {
@@ -115,6 +116,7 @@ enum ParticleOptics {
     for start in image.pixels.indices where !visited[start] && image.pixels[start] < 145 {
       var queue = [start], cursor = 0
       visited[start] = true
+      var perimeter = 0
       var sx = 0, sy = 0, xmin = w, xmax = 0, ymin = h, ymax = 0
       while cursor < queue.count {
         let at = queue[cursor]; cursor += 1
@@ -124,6 +126,7 @@ enum ParticleOptics {
         ymin = min(ymin, y); ymax = max(ymax, y)
         for next in [x > 0 ? at - 1 : -1, x + 1 < w ? at + 1 : -1,
                      y > 0 ? at - w : -1, y + 1 < h ? at + w : -1] {
+          if next < 0 || image.pixels[next] >= 145 { perimeter += 1 }
           if next >= 0 && !visited[next] && image.pixels[next] < 145 {
             visited[next] = true; queue.append(next)
           }
@@ -133,7 +136,8 @@ enum ParticleOptics {
       let ratio = Double(xmax - xmin + 1) / Double(ymax - ymin + 1)
       if area >= 2 && area <= 2000 && ratio > 0.45 && ratio < 2.2 {
         blobs.append(Blob(point: CGPoint(x: Double(sx) / Double(area), y: Double(sy) / Double(area)),
-          area: area, fillRatio: Double(area) / Double((xmax - xmin + 1) * (ymax - ymin + 1))))
+          area: area, fillRatio: Double(area) / Double((xmax - xmin + 1) * (ymax - ymin + 1)),
+          compactness: 4 * .pi * Double(area) / Double(perimeter * perimeter)))
       }
       // Textured backgrounds must not cause quadratic matching on an unbounded list.
       if blobs.count > 5000 { return [] }
@@ -151,7 +155,10 @@ enum ParticleOptics {
       }.count
       // Small satellites can vanish after screen/camera resampling. They boost
       // ranking, but five-center geometry and the full codeword validate a fit.
-      candidates.append((center.point, Double(center.area) * (1 + Double(min(count, 6)) * 0.05)))
+      // Filled glyphs can be larger than real centers even after the fill test.
+      // Penalize their irregular boundary without requiring visible satellites.
+      candidates.append((center.point, Double(center.area) * pow(center.compactness, 3) *
+        (1 + Double(min(count, 6)) * 0.05)))
     }
     return candidates.sorted { $0.1 > $1.1 }.prefix(8).map { $0.0 }
   }

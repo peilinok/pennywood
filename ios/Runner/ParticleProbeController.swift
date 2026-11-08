@@ -1,6 +1,42 @@
 import AVFoundation
 import UIKit
 
+final class ParticleDisplayController: UIViewController {
+  private let pattern = ParticlePatternView()
+  private let closeButton = UIButton(type: .system)
+
+  override var prefersStatusBarHidden: Bool { true }
+  override var prefersHomeIndicatorAutoHidden: Bool { true }
+  override var keyCommands: [UIKeyCommand]? {
+    [UIKeyCommand(input: UIKeyCommand.inputEscape, modifierFlags: [], action: #selector(close))]
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = ParticleOptics.paper
+    closeButton.setImage(UIImage(systemName: "xmark", withConfiguration:
+      UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)), for: .normal)
+    closeButton.tintColor = UIColor(red: 124/255, green: 71/255, blue: 46/255, alpha: 1)
+    closeButton.accessibilityLabel = "退出全屏展示"
+    closeButton.addTarget(self, action: #selector(close), for: .touchUpInside)
+    view.addSubview(pattern)
+    view.addSubview(closeButton)
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    let safe = view.safeAreaLayoutGuide.layoutFrame
+    let available = safe.inset(by: UIEdgeInsets(top: 64, left: 32, bottom: 32, right: 32))
+    let side = max(0, min(available.width, available.height))
+    pattern.frame = CGRect(x: available.midX - side / 2, y: available.midY - side / 2,
+      width: side, height: side)
+    closeButton.frame = CGRect(x: safe.maxX - 52, y: safe.minY + 8, width: 44, height: 44)
+  }
+
+  @objc private func close() { dismiss(animated: !UIAccessibility.isReduceMotionEnabled) }
+  override func accessibilityPerformEscape() -> Bool { close(); return true }
+}
+
 struct ParticleCaptureConfirmation {
   private var candidate: [UInt8]?
   private var candidateTime = 0.0
@@ -193,10 +229,10 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
     if mode.selectedSegmentIndex == 0 {
       area.addSubview(pattern)
       pattern.frame = area.bounds
-      instruction.text = "用 iPhone 打开相机识别，完整拍入圆形粒子图。可将 iPad 屏幕亮度调高。"
-      status.text = "公开测试图 · PWPC v1\n请保持此页，等待另一台设备扫描。"
-      action.setTitle("测试图保持静止", for: .normal)
-      action.isEnabled = false
+      instruction.text = "点击全屏展示，让另一台设备完整拍入圆形粒子图。可将屏幕亮度调高。"
+      status.text = "公开测试图 · PWPC v1\n全屏展示时将隐藏文字。"
+      action.setTitle("全屏展示配对图", for: .normal)
+      action.isEnabled = true
     } else {
       instruction.text = "对准整个粒子图，保持稳定并避开反光。蓝色小圆环应对准定位星簇，橙色虚线圈应围住中间的数据粒子。标记仅表示几何候选。"
       status.text = "点击开启相机。识别后显示结果与耗时。"
@@ -206,7 +242,12 @@ final class ParticleProbeController: UIViewController, AVCaptureVideoDataOutputS
   }
 
   @objc private func activate() {
-    guard mode.selectedSegmentIndex == 1 else { return }
+    if mode.selectedSegmentIndex == 0 {
+      let display = ParticleDisplayController()
+      display.modalPresentationStyle = .fullScreen
+      present(display, animated: !UIAccessibility.isReduceMotionEnabled)
+      return
+    }
     switch AVCaptureDevice.authorizationStatus(for: .video) {
     case .authorized: start()
     case .notDetermined:

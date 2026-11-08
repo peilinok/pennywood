@@ -92,6 +92,143 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(result.payload, payload, "Screen caption must not displace locator candidates: \(result.locatorCount)")
   }
 
+  func testDisplayTextCannotDisplaceRealLocatorConstellations() throws {
+    let captions = [
+      ("用 iPhone 打开相机识别，完整拍入圆形粒子图。可将 iPad 屏幕亮度调高。", CGRect(x: 16, y: 72, width: 736, height: 20.33333333333333)),
+      ("公开测试图 · PWPC v1\n请保持此页，等待另一台设备扫描。", CGRect(x: 16, y: 644.3333333333334, width: 736, height: 42.33333333333337)),
+      ("展示配对图", CGRect(x: 167.33333333333334, y: 26.666666666666668, width: 64.66666666666666, height: 15.666666666666668)),
+      ("相机识别", CGRect(x: 542.3333333333334, y: 26.666666666666668, width: 51.66666666666663, height: 15.666666666666668))
+    ]
+    for angle in [0.0, Double.pi / 2] {
+      let clear = ParticleOptics.recognize(try displayCaptionFrame(captions: [], angle: angle))
+      XCTAssertEqual(clear.payload, ParticleCode.testPayload(), "The same field is readable without text")
+      XCTAssertEqual(clear.candidates.count, 5)
+      for visibleCaptions in [[captions[0]], [captions[1]], captions] {
+        let result = ParticleOptics.recognize(try displayCaptionFrame(captions: visibleCaptions, angle: angle))
+        XCTAssertEqual(result.payload, ParticleCode.testPayload(), "Display text must not hide a readable field at angle \(angle)")
+        for locator in clear.candidates {
+          XCTAssertTrue(result.candidates.contains { hypot($0.x - locator.x, $0.y - locator.y) < 2 },
+            "All five real locator centers must survive candidate ranking")
+        }
+      }
+    }
+  }
+
+  private func displayCaptionFrame(captions: [(String, CGRect)], angle: Double) throws -> ParticleGrayImage {
+    let screen = UIView(frame: CGRect(x: 0, y: 0, width: 768, height: 1024))
+    screen.backgroundColor = ParticleOptics.paper
+    let pattern = ParticlePatternView(frame: CGRect(x: 16, y: 108.33333333333331, width: 736, height: 520))
+    screen.addSubview(pattern)
+    for caption in captions {
+      let label = UILabel(frame: caption.1)
+      label.text = caption.0
+      label.font = .systemFont(ofSize: caption.1.minY < 50 ? 13 : 17)
+      label.textColor = .black
+      label.numberOfLines = 0
+      label.textAlignment = caption.1.minY > 600 ? .center : .left
+      screen.addSubview(label)
+    }
+    screen.layoutIfNeeded()
+    pattern.layer.displayIfNeeded()
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let rendered = UIGraphicsImageRenderer(size: screen.bounds.size, format: format).image {
+      screen.layer.render(in: $0.cgContext)
+    }
+    let captured = UIGraphicsImageRenderer(size: CGSize(width: 1280, height: 720), format: format).image { renderer in
+      let context = renderer.cgContext
+      context.setFillColor(ParticleOptics.paper.cgColor)
+      context.fill(CGRect(x: 0, y: 0, width: 1280, height: 720))
+      context.translateBy(x: 640, y: 360)
+      context.rotate(by: angle)
+      context.scaleBy(x: 400.0 / 520, y: 400.0 / 520)
+      rendered.draw(at: CGPoint(x: -384, y: -368.3333333333333))
+    }
+    let input = CIImage(cgImage: try XCTUnwrap(captured.cgImage))
+    let blurred = input.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 0.6]).cropped(to: input.extent)
+    return try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(CIContext().createCGImage(blurred, from: input.extent))))
+  }
+
+  func testCleanDisplayRemainsReadableAcrossReflowAndAppearance() throws {
+    let display = ParticleDisplayController()
+    display.loadViewIfNeeded()
+    let pattern = try XCTUnwrap(descendants(display.view).compactMap { $0 as? ParticlePatternView }.first)
+    let close = try XCTUnwrap(descendants(display.view).compactMap { $0 as? UIButton }.first)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    for style in [UIUserInterfaceStyle.light, .dark] {
+      display.overrideUserInterfaceStyle = style
+      for size in [CGSize(width: 375, height: 812), CGSize(width: 812, height: 375),
+                   CGSize(width: 768, height: 1024), CGSize(width: 1024, height: 768),
+                   CGSize(width: 375, height: 600)] {
+        display.view.frame = CGRect(origin: .zero, size: size)
+        display.view.setNeedsLayout()
+        display.view.layoutIfNeeded()
+        pattern.layer.displayIfNeeded()
+        let image = UIGraphicsImageRenderer(size: size, format: format).image {
+          display.view.layer.render(in: $0.cgContext)
+        }
+        let result = ParticleOptics.recognize(try XCTUnwrap(ParticleGrayImage.from(try XCTUnwrap(image.cgImage))))
+        XCTAssertEqual(result.payload, ParticleCode.testPayload(), "Clean display must remain readable at \(size), style \(style)")
+        XCTAssertFalse(pattern.frame.intersects(close.frame))
+        XCTAssertTrue(display.view.safeAreaLayoutGuide.layoutFrame.contains(close.frame))
+        XCTAssertGreaterThanOrEqual(close.bounds.width, 44)
+        XCTAssertGreaterThanOrEqual(close.bounds.height, 44)
+        XCTAssertEqual(close.accessibilityLabel, "退出全屏展示")
+        XCTAssertFalse(descendants(display.view).compactMap { $0 as? UILabel }.contains {
+          !$0.isHidden && !($0.text ?? "").isEmpty
+        }, "Only the particle field and exit icon may be visible")
+      }
+    }
+  }
+
+  func testFullScreenDisplayOpensAndReturnsToProbeControls() throws {
+    let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+    let previous = scene.windows.first { $0.isKeyWindow }
+    let window = UIWindow(windowScene: scene)
+    let probe = ParticleProbeController()
+    let navigation = UINavigationController(rootViewController: probe)
+    let animations = UIView.areAnimationsEnabled
+    UIView.setAnimationsEnabled(false)
+    defer {
+      window.isHidden = true
+      window.rootViewController = nil
+      previous?.makeKey()
+      UIView.setAnimationsEnabled(animations)
+    }
+    window.rootViewController = navigation
+    window.makeKeyAndVisible()
+    window.layoutIfNeeded()
+    let mode = try XCTUnwrap(descendants(probe.view).compactMap { $0 as? UISegmentedControl }.first)
+    mode.selectedSegmentIndex = 0
+    mode.sendActions(for: .valueChanged)
+    let open = try XCTUnwrap(descendants(probe.view).compactMap { $0 as? UIButton }.first {
+      $0.title(for: .normal) == "全屏展示配对图"
+    })
+    XCTAssertTrue(open.isEnabled)
+    open.sendActions(for: .touchUpInside)
+    let presented = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+      probe.presentedViewController != nil && probe.presentedViewController?.isBeingPresented == false
+    }, object: nil)
+    wait(for: [presented], timeout: 2)
+    let display = try XCTUnwrap(probe.presentedViewController as? ParticleDisplayController)
+    XCTAssertEqual(display.modalPresentationStyle, .fullScreen)
+    let close = try XCTUnwrap(descendants(display.view).compactMap { $0 as? UIButton }.first)
+    close.sendActions(for: .touchUpInside)
+    let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+      probe.presentedViewController == nil
+    }, object: nil)
+    wait(for: [dismissed], timeout: 2)
+    XCTAssertNil(probe.presentedViewController)
+    XCTAssertEqual(mode.selectedSegmentIndex, 0)
+    XCTAssertTrue(open.isEnabled)
+    XCTAssertTrue(navigation.topViewController === probe)
+  }
+
+  private func descendants(_ view: UIView) -> [UIView] {
+    [view] + view.subviews.flatMap { descendants($0) }
+  }
+
   func testGeometryFeedbackDistinguishesTextFromDamagedCode() throws {
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1

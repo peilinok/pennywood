@@ -4,6 +4,13 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Optical display testing build 0.5.0+19
+
+- Add a clean full-screen particle display with an accessible exit icon, safe-area spacing and orientation/window reflow. The iPad display action opens it; exiting returns to the probe controls.
+- Rank locator candidates using boundary compactness as well as area and optional satellites, so filled text glyphs are less likely to displace real centers. Preserve the optical profile, eight-candidate/time bounds, full RS/CRC/profile validation, two-frame confirmation, camera settings and numeric diagnostics.
+- Reproduce the old display's text interference with fixed caption renders; retain blurred satellite-loss coverage and add clean-display decoding and open/exit regressions. The old control page still has small/blurred text interference limits; use full-screen display for the physical retest.
+- The owner completed one build 18 physical confirmation after 13.3 seconds with three decodes and aligned geometry. This establishes one success, not optical reliability. Build 19 needs its own physical trial. Schema6, archives, credentials and same-bundle recovery are unchanged.
+
 ### Optical geometry diagnostic build 0.5.0+18
 
 - Add transient candidate rings and a dashed data-sampling boundary to the live preview, plus run-best field dimensions, minimum bit-position spacing, mean differential luminance and fifth-point residual in the copied numeric summary. No images or recovered payloads are retained or exported.
