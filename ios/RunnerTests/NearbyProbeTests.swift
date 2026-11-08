@@ -258,8 +258,9 @@ final class NearbyProbeTests: XCTestCase {
     defer { reopenedHost.stop(); reopenedClient.stop() }
     let synced = expectation(description: "Reopened pair authenticates with saved credentials")
     synced.expectedFulfillmentCount = 2
-    for transport in [reopenedHost, reopenedClient] {
+    for (side, transport) in [("reopened-host", reopenedHost), ("reopened-client", reopenedClient)] {
       transport.onEvent = { event in
+        record(event, side: side)
         if case .display = event { XCTFail("Daily sync must not request another scan") }
         if case .approval = event { XCTFail("Saved pair must not request repeat admission") }
         if case .complete = event { synced.fulfill() }
@@ -267,6 +268,8 @@ final class NearbyProbeTests: XCTestCase {
     }
     reopenedClient.sync(); reopenedHost.sync()
     wait(for: [synced], timeout: 20)
+    XCTAssertTrue(reopenedHost.summary.contains("已存配对自动重连") && reopenedClient.summary.contains("已存配对自动重连"),
+      "[NEARBY-STAGES] " + stages.joined(separator: ","))
     XCTAssertTrue(reopenedHost.summary.contains("已存配对自动重连"))
     XCTAssertTrue(reopenedClient.summary.contains("已存配对自动重连"))
   }
@@ -336,6 +339,44 @@ final class NearbyProbeTests: XCTestCase {
     wait(for: [unexpected], timeout: 0.3)
     XCTAssertFalse(transport.isRunning)
     XCTAssertNil(try store.load())
+  }
+
+  func testTLSAuthenticatesMatchingIdentitiesContainingZeroAndNonUTF8Bytes() throws {
+    let cases: [(String, [UInt8])] = [("zero-byte", [0, 1, 2, 3]), ("non-utf8", [0xff, 0x80, 1, 2])]
+    for (label, bytes) in cases {
+      let ready = expectation(description: "Both endpoints authenticate a matching " + label + " identity")
+      ready.expectedFulfillmentCount = 2
+      let key = try NearbyProbeInvitation.random(32)
+      let identity = Data("enrollment-v1:".utf8) + Data(bytes)
+      let listener = try NWListener(using: NearbyProbeTransport.parameters(secret: key, identity: identity))
+      var incoming: NWConnection?, outgoing: NWConnection?
+      defer { outgoing?.cancel(); incoming?.cancel(); listener.cancel() }
+      listener.newConnectionHandler = { candidate in
+        incoming = candidate
+        candidate.stateUpdateHandler = { state in
+          if case .ready = state {
+            XCTAssertTrue(NearbyProbeTransport.expectedTLS(candidate))
+            ready.fulfill()
+          }
+        }
+        candidate.start(queue: .main)
+      }
+      listener.stateUpdateHandler = { state in
+        guard case .ready = state, let port = listener.port, outgoing == nil else { return }
+        let candidate = NWConnection(host: "127.0.0.1", port: port,
+          using: NearbyProbeTransport.parameters(secret: key, identity: identity))
+        outgoing = candidate
+        candidate.stateUpdateHandler = { state in
+          if case .ready = state {
+            XCTAssertTrue(NearbyProbeTransport.expectedTLS(candidate))
+            ready.fulfill()
+          }
+        }
+        candidate.start(queue: .main)
+      }
+      listener.start(queue: .main)
+      wait(for: [ready], timeout: 8)
+    }
   }
 
   func testProbeControlsReflowAndBackgroundStopsTheSessionWithoutClearingTrust() throws {

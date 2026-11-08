@@ -6,7 +6,7 @@ The 0.5.0+12 simplification candidate is being delivered in bounded tasks under 
 
 An iPhone / iPad financial-learning app for children aged 7-10 and their parents. Children work toward wishes through agreed real-world work or proactive learning. A parent first checks the work, then confirms actual payment; only then do pocket money and wish progress change.
 
-Source candidate: **0.5.0+20** (synthetic nearby connection testing build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
+Source candidate: **0.5.0+21** (synthetic nearby connection testing build). Local storage: **Drift schema 6**. The native wish journal is the main child entry; the standalone town route and duplicate business panels are retired by ADR 0003; scene data and internal tests remain. HTML files are design references.
 
 **Available today: two children on one device, with a local ledger. Automatic cross-device sync is not implemented.** There are no real payment, banking, investment-account, or market-data integrations. Parents fund teaching yields under agreed terms and budgets.
 
@@ -104,6 +104,8 @@ The same separate entry now offers **Start two-device connection test**. On one 
 After a completed pair, or after an interrupted durable activation, open this page on both devices and tap **Sync test messages**. No new scan is requested. Cancel/background stops the foreground session; retry retains saved trust. **Forget test pairing** removes only the local probe item; forget on both devices before intentionally starting a new pair. A failure before the second device receives its durable offer may require this explicit reset. No real database, schema6 archive, parent credential, balance or family grant is opened or changed.
 
 The test uses Bonjour and peer-to-peer-enabled Network TCP with strict TLS 1.2 PSK / AES-128-GCM negotiation. It has no plaintext fallback or forward secrecy. No-common-router operation, real permission recovery and device restart acceptance remain physical gates. The native suite uses certificate-free ad-hoc simulator signing so isolated Keychain behavior is actually tested. See the [API research, implementation contract and acceptance](docs/research/nearby-enrollment-probe.md).
+
+Build 21 encodes the complete PSK identity as Base64 ASCII at the Network API boundary. Build 20 can fail authentication when a random identity contains a zero byte, even with matching keys. Stored credentials, secret bytes and the optical format are unchanged; update both test endpoints before retrying. Device enrollment and restart results still need their own acceptance.
 
 ## Remaining work
 

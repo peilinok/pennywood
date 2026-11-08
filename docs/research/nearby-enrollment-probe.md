@@ -46,7 +46,7 @@ func makeParameters(secret: Data, identity: Data) -> NWParameters {
     sec_protocol_options_add_pre_shared_key(
         options,
         dispatchData(secret) as __DispatchData,
-        dispatchData(identity) as __DispatchData
+        dispatchData(Data(identity.base64EncodedString().utf8)) as __DispatchData
     )
     let parameters = NWParameters(tls: tls, tcp: NWProtocolTCP.Options())
     parameters.includePeerToPeer = true
@@ -83,10 +83,12 @@ func hasExpectedTLS(_ connection: NWConnection) -> Bool {
 
 The TLS configuration/metadata APIs used here that take or return `tls_protocol_version_t` or `tls_ciphersuite_t` are available on iOS 13. `add_pre_shared_key` is available on iOS 12. The cipher code point is `0x00A8`; AES-128 remains AES-128 even with a 256-bit PSK. Reject a missing TLS metadata object, a different version or a different suite at `.ready`, before exchanging any credential or other application payload. Never add a plaintext retry or a certificate verification callback which always returns true. SDK declarations prove that these calls exist; a wrong-key physical test must still establish that the implementation refuses an unauthenticated peer. [S1-S3, SDK]
 
+Runtime qualification: the installed Network implementation fails the matching-key loopback handshake when the raw identity contains a zero byte. A fixed non-UTF-8 identity without zero bytes succeeds. Build 21 therefore Base64-encodes the complete contextual identity into ASCII at this API boundary. The secret remains its original random bytes; no encoding is applied to stored credentials. This is a simulator-observed compatibility constraint, not a limitation inferred from the API signature or a physical-device result.
+
 `sec_protocol_options_set_pre_shared_key_selection_block` is available on iOS 13. Its SDK contract says the **client** chooses a PSK identity given an optional server hint; its completion takes the chosen identity, not the secret. It is not a listener-side authorization callback. Apple's single-key sample does not install it, so the probe need not add it merely to use one configured key. If the implementation uses an explicit single-identity client selection, this form also typechecks:
 
 ```swift
-let identifier = dispatchData(identity)
+let identifier = dispatchData(Data(identity.base64EncodedString().utf8))
 sec_protocol_options_set_pre_shared_key_selection_block(options, { _, _, complete in
     complete(identifier as __DispatchData)
 }, queue)
@@ -192,7 +194,17 @@ The native baseline passed all 22 optical tests. The first new test run exposed 
 
 Local focused validation currently passes 37 native tests, including a real Bonjour/TLS enrollment with isolated Keychain writes and a new transport instance reading the saved pair without an invitation, plus two Flutter entry tests. These are simulator/host facts, not two physical-device results. Final full iPhone/iPad production/restart runs, candidate CI, installation and physical steps are recorded separately below when complete.
 
-The owner reports 5/5 ordinary-condition build 19 full-screen optical trials at about one second; a copied summary confirms in 0.5 seconds. The additional 15 trials, full optical/negative matrix, dynamic invitation camera test, true process restart, permission denial/recovery, background/interruption, and no-common-router/no-internet physical acceptance remain pending.
+The owner reports 5/5 ordinary-condition build 19 full-screen optical trials at about one second; a copied summary confirms in 0.5 seconds. The owner subsequently completed the guided build 20 first-pair flow and reports that both devices displayed test-message completion. This is owner-reported two-device enrollment evidence; no timing/diagnostic summary was supplied. The additional 15 optical trials, full optical/negative matrix, no-scan reconnect, true process restart, permission denial/recovery, background/interruption, and no-common-router/no-internet physical acceptance remain pending.
+
+## Build 21 identity repair
+
+The first hosted candidate passed repository checks and the iPhone job, while the iPad Bonjour enrollment/reopen test failed. A local repeated run reproduced failure on its third iteration before authenticated-ready/admission. A fixed matching identity with bytes `00 01 02 03` after the enrollment context then failed an eight-second real loopback TLS expectation; the separate `ff 80 01 02` case passed. Existing random-input tests had not reliably exercised this condition.
+
+The repair encodes the entire context plus ID as Base64 ASCII immediately before supplying the PSK identity to Network. Both ends still use the same unchanged 32-byte secret, TLS version and cipher requirements. The fixed zero/non-UTF-8 regression passed after the repair, and all 30 repeated wrong-key/identity refusal runs passed. The repeated Bonjour test passed 23 times before one reopened-session timeout near a discovery-name minute transition. Its enrollment had already completed; the cause of that later timeout is unconfirmed. After adding bounded reopened-session stage records, a separate 50-run enrollment/reconnect sequence passed without retries or changed timeouts. This does not prove the intermittent timeout fixed. Keep it as an open acceptance risk; final iPhone/iPad checks and current-candidate CI are separate gates reported on the draft PR.
+
+The native failure reporter now traverses the result tree to retain bounded stage markers that are absent from the first-failure summary, without exporting assertion content or attachments. A nested-marker fixture checks that private assertion values are omitted; the same parser also recovers the marker from the actual failing result tree.
+
+Build 20 was installed on both selected devices, and the owner now reports first enrollment/test-message completion on both ends. Build 21 installation and acceptance remain separate: update both endpoints, preserve that saved pair, then validate no-scan Sync and actual process restart. The Keychain envelope and stored test keys are unchanged, so a valid saved pair can be retried without clearing it. Database schema6, encrypted archives, production credentials and optical encoding remain unchanged. This patch does not establish production security acceptance or any unreported physical trial.
 
 ## Sources
 

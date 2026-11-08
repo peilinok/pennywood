@@ -4,6 +4,12 @@ Record user-visible changes and data compatibility in English. Release entries a
 
 ## Unreleased
 
+### Synthetic nearby identity repair testing build 0.5.0+21
+
+- Reproduce matching-key TLS failure with a fixed identity containing a zero byte, separately from a non-UTF-8 identity. Encode the complete identity as Base64 ASCII only at the Network PSK API boundary; preserve the random secret and strict negotiated TLS checks.
+- Retain wrong-key/identity rejection and full Bonjour enrollment, permanent-key activation and reopened no-scan reconnect assertions. Update both test endpoints; no schema6, archive, stored test credential, production permission or optical-format change is required.
+- Read the native result tree for failure-stage diagnostics so a later bounded stage marker is not lost behind the first assertion. Never export assertion values, credentials or attachments. Physical enrollment, restart, permission and no-router trials remain pending.
+
 ### Synthetic nearby connection testing build 0.5.0+20
 
 - Add an independent two-device probe: scan a fresh two-minute particle invitation, explicitly admit on the display device, durably save a pending test pair, then authenticate with the permanent credential before activation and acknowledged test-message exchange.

@@ -81,13 +81,19 @@ print(runtime["identifier"])
     -resultBundlePath "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" \
     -only-testing:RunnerTests CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=; then
     # Export only test names and explicitly bounded stage labels, never assertion values or attachments.
-    xcrun xcresulttool get test-results summary --path "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" --format json | python3 -c '
+    xcrun xcresulttool get test-results tests --path "$PENNYWOOD_IOS_EVIDENCE/$PENNYWOOD_KIND/NativeTests.xcresult" --format json | python3 -c '
 import json, re, sys
-result = json.load(sys.stdin)
-print("Native test failures:", result.get("failedTests", "unknown"))
-for failure in result.get("testFailures", []):
-    print("Failed:", failure.get("testName", "unknown"))
-    marker = re.search(r"\[NEARBY-STAGES\] ([a-z.,-]+)", failure.get("failureText", ""))
+def walk(nodes):
+    for node in nodes:
+        yield node
+        yield from walk(node.get("children", []))
+nodes = list(walk(json.load(sys.stdin).get("testNodes", [])))
+failures = [n for n in nodes if n.get("nodeType") == "Test Case" and n.get("result") == "Failed"]
+print("Native test failures:", len(failures))
+for failure in failures:
+    print("Failed:", failure.get("nodeIdentifier", "unknown"))
+for node in nodes:
+    marker = re.search(r"\[NEARBY-STAGES\] ([a-z.,-]+)", node.get("name", ""))
     if marker:
         print("Nearby stages:", marker.group(1))
 '

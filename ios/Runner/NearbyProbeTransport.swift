@@ -36,7 +36,9 @@ final class NearbyProbeTransport {
     let tls = NWProtocolTLS.Options()
     let options = tls.securityProtocolOptions
     let key = secret.withUnsafeBytes { DispatchData(bytes: $0) }
-    let identifier = identity.withUnsafeBytes { DispatchData(bytes: $0) }
+    // Network's PSK identity path rejects embedded zero bytes; preserve all bytes as ASCII.
+    let encodedIdentity = Data(identity.base64EncodedString().utf8)
+    let identifier = encodedIdentity.withUnsafeBytes { DispatchData(bytes: $0) }
     sec_protocol_options_set_min_tls_protocol_version(options, .TLSv12)
     sec_protocol_options_set_max_tls_protocol_version(options, .TLSv12)
     sec_protocol_options_append_tls_ciphersuite(options, cipher)
